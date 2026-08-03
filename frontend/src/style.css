@@ -1,0 +1,83 @@
+body {
+    font-family: system-ui, -apple-system, sans-serif;
+    background-color: #f4f7f6;
+    margin: 0;
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+}
+
+.container {
+    background: white;
+    padding: 20px 40px;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 500px;
+}
+
+.container h1 {
+    text-align: center;
+    color: #333;
+    margin-top: 0;
+}
+
+.pet-form {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.pet-form input,
+.pet-form select {
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    flex: 1;
+}
+
+.pet-form button {
+    padding: 8px 16px;
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.pet-form button:hover {
+    background: #0056b3;
+}
+
+.pet-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.pet-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+.pet-list li:last-child {
+    border-bottom: none;
+}
+
+.delete-btn {
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.delete-btn:hover {
+    background: #a11;
+}
