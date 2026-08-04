@@ -1,20 +1,27 @@
+// src/components/ProtectedRoute.jsx
+import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
-export default function ProtectedRoute({ allowedRoles }) {
-    // Tạm thời gán cứng (hardcode) role là ADMIN để bạn test.
-    const userRole = 'ADMIN'; 
-    const isAuthenticated = true;
+const ProtectedRoute = ({ allowedRoles }) => {
+    const { user, loading } = useAuth();
 
-    // Nếu chưa đăng nhập -> Đẩy về trang Login
-    if (!isAuthenticated) {
+    if (loading) {
+        return <div className="flex justify-center items-center h-screen">
+                <LoaderCircle className="animate-spin w-10 h-10 text-purple-600"/>
+        </div>; 
+    }
+
+    if (!user) {
         return <Navigate to="/login" replace />;
     }
 
-    // Nếu Role không nằm trong danh sách cho phép -> Đẩy về Trang chủ
-    if (!allowedRoles.includes(userRole)) {
-        return <Navigate to="/" replace />;
+    if (allowedRoles && !allowedRoles.includes(user.role)) {
+        console.warn("Bạn không có quyền truy cập trang này!");
+        return <Navigate to="/" replace />; 
     }
 
-    // Nếu hợp lệ -> Cho phép load nội dung trang con
     return <Outlet />;
-}
+};
+
+export default ProtectedRoute;

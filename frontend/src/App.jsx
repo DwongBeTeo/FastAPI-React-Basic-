@@ -3,7 +3,8 @@ import { Route, Routes } from 'react-router-dom';
 import Login from './pages/Login';
 import MainLayout from './components/MainLayout';
 import Home from './pages/Home';
-import ProductAdmin from './pages/admin/ProductAdmin';
+import PetAdmin from './pages/admin/PetAdmin';
+import ProtectedRoute from './components/ProtectedRoute';
 
 const App = () => {
   return (
@@ -13,13 +14,14 @@ const App = () => {
       {/* Warp in MainLayout*/}
       <Route element={<MainLayout />}>
         
-        {/* Trang ai cũng vào được */}
+        {/* for everyone */}
         <Route path="/" element={<Home />} />
 
         {/* For only ADMIN */}
-            <Route path="/productAdmin" element={<ProductAdmin />} /> 
-        {/* <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
-        </Route> */}
+        <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
+            <Route path="/admin/pets" element={<PetAdmin />} /> 
+        </Route>
+        {/* <Route element={<ProtectedRoute allowedRoles={['ADMIN']}/>}></Route> */}
 
       </Route>
     </Routes>
