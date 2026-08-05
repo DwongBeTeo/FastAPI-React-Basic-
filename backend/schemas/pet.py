@@ -1,17 +1,22 @@
+# schemas/pet.py
 from pydantic import BaseModel
+from typing import Optional
 
-# Base class containing common attributes
 class PetBase(BaseModel):
     name: str
     species: str
+    price: Optional[int] = None
+    breed: Optional[str] = None
+    gender: Optional[str] = None
+    status: str = "Active"          
+    image: Optional[str] = None     
+    description: Optional[str] = None
 
-# Schema for creation (without ID)
 class PetCreate(PetBase):
     pass
 
-# Schema for response (with ID from database)
 class PetResponse(PetBase):
     id: int
 
     class Config:
-        from_attributes = True  # Allows Pydantic to read data directly from SQLAlchemy Model
+        from_attributes = True

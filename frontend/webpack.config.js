@@ -6,21 +6,21 @@ module.exports = {
   output: {
     path: path.resolve(__dirname, 'dist'),
     filename: 'bundle.js',
-    clean: true, // Xóa thư mục dist cũ trước khi build mới
+    clean: true, 
   },
   mode: 'development',
   devServer: {
     port: 3000,
-    open: true, // Tự động mở trình duyệt
-    hot: true,  // Cập nhật giao diện không cần reload trang
-    historyApiFallback: true, // quan trọng cho React Router (SPA)
+    open: true, 
+    hot: true,  
+    historyApiFallback: true,
   },
   module: {
     rules: [
       {
         test: /\.(js|jsx)$/,
         exclude: /node_modules/,
-        use: 'babel-loader', // Dùng Babel để đọc file .js, .jsx
+        use: 'babel-loader',
       },
       {
         test: /\.css$/,

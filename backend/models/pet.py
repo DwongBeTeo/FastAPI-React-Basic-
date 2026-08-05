@@ -1,5 +1,5 @@
-# auto-generate migration table
-from sqlalchemy import Column, Integer, String
+# models/pet.py
+from sqlalchemy import Column, Integer, String, Text
 from database import Base
 
 class Pet(Base):
@@ -8,3 +8,10 @@ class Pet(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True)
     species = Column(String)
+    
+    price = Column(Integer) # news column
+    image = Column(String, nullable=True)     
+    breed = Column(String)                    
+    status = Column(String, default="Active") 
+    gender = Column(String)                   
+    description = Column(Text, nullable=True) 

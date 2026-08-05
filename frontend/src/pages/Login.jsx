@@ -1,9 +1,9 @@
 // src/pages/Login.jsx
-import React, { useState } from 'react';
+import React, { useContext, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode'; 
 
-import { useAuth } from '../context/AuthContext';
+import AuthContext from '../context/AuthContext';
 import axiosConfig from '../utils/axiosConfig.jsx';
 import { API_ENDPOINTS } from '../utils/apiEndPoint';
 import { LoaderCircle } from "lucide-react";
@@ -15,7 +15,7 @@ const Login = () => {
     const [isLoading, setIsLoading] = useState(false);
 
     const navigate = useNavigate();
-    const { login } = useAuth(); 
+    const { login } = useContext(AuthContext); 
 
     const handleLogin = async (e) => {
         e.preventDefault(); 

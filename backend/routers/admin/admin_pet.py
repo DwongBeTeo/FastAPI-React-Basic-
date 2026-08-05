@@ -6,7 +6,6 @@ import schemas, auth
 from database import get_db
 from services import pet_service
 
-# TOÀN BỘ CÁC API TRONG ROUTER NÀY ĐỀU PHẢI QUA CỬA KIỂM SOÁT ADMIN
 router = APIRouter(
     tags=["Admin Pets"]
 )

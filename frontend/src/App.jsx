@@ -5,6 +5,7 @@ import MainLayout from './components/MainLayout';
 import Home from './pages/Home';
 import PetAdmin from './pages/admin/PetAdmin';
 import ProtectedRoute from './components/ProtectedRoute';
+import PetListPage from './pages/user/PetListPage';
 
 const App = () => {
   return (
@@ -16,6 +17,7 @@ const App = () => {
         
         {/* for everyone */}
         <Route path="/" element={<Home />} />
+        <Route path="/pets" element={<PetListPage />} />
 
         {/* For only ADMIN */}
         <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>

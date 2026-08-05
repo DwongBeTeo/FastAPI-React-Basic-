@@ -1,10 +1,11 @@
 """create users table
 
-Revision ID: 303cea9cd496
+Revision ID: 20260804115552
 Revises: d0690e5fe5bf
 Create Date: 2026-08-04 11:55:52.223828
 
 """
+# 303cea9cd496
 from typing import Sequence, Union
 
 from alembic import op

@@ -1,3 +1,4 @@
+// components/petlist
 import React from 'react';
 import { Edit, Trash2, Fish } from 'lucide-react';
 
@@ -9,9 +10,9 @@ const PetList = ({ pets, onDelete, onEdit }) => {
                     <thead className="bg-gray-50 border-b border-gray-100 text-gray-500 uppercase">
                         <tr>
                             <th className="px-6 py-4 w-12 text-center">ID</th>
-                            <th className="px-6 py-4 font-semibold tracking-wider">Tên Cá Cảnh</th>
-                            <th className="px-6 py-4 font-semibold tracking-wider">Giống Loài</th>
-                            <th className="px-6 py-4 font-semibold tracking-wider text-right">Hành động</th>
+                            <th className="px-6 py-4 font-semibold tracking-wider">Name</th>
+                            <th className="px-6 py-4 font-semibold tracking-wider">Species</th>
+                            <th className="px-6 py-4 font-semibold tracking-wider text-right">Description</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
@@ -20,7 +21,7 @@ const PetList = ({ pets, onDelete, onEdit }) => {
                                 <td colSpan="4" className="px-6 py-12 text-center text-gray-500">
                                     <div className="flex flex-col items-center justify-center">
                                         <Fish className="w-12 h-12 text-gray-300 mb-2" />
-                                        <p>Chưa có dữ liệu cá cảnh trong hệ thống.</p>
+                                        <p>Chưa có dữ liệu trong hệ thống.</p>
                                     </div>
                                 </td>
                             </tr>

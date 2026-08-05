@@ -1,10 +1,11 @@
 // src/components/ProtectedRoute.jsx
-import React from 'react';
+import React, { useContext } from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import AuthContext from '../context/AuthContext';
+import { LoaderCircle } from 'lucide-react';
 
 const ProtectedRoute = ({ allowedRoles }) => {
-    const { user, loading } = useAuth();
+    const { user, loading } = useContext(AuthContext);
 
     if (loading) {
         return <div className="flex justify-center items-center h-screen">
@@ -13,12 +14,12 @@ const ProtectedRoute = ({ allowedRoles }) => {
     }
 
     if (!user) {
-        return <Navigate to="/login" replace />;
+        return <Navigate to="/" replace />;
     }
 
     if (allowedRoles && !allowedRoles.includes(user.role)) {
         console.warn("Bạn không có quyền truy cập trang này!");
-        return <Navigate to="/" replace />; 
+        return <Navigate to="/login" replace />; 
     }
 
     return <Outlet />;

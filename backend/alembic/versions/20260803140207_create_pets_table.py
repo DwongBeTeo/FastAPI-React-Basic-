@@ -1,10 +1,11 @@
 """create pets table
 
-Revision ID: d0690e5fe5bf
+Revision ID: 20260803140207
 Revises: 
 Create Date: 2026-08-03 14:02:07.467854
 
 """
+# d0690e5fe5bf
 from typing import Sequence, Union
 
 from alembic import op
