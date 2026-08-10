@@ -1,5 +1,5 @@
 # models/user.py
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, Integer, String, Boolean
 from database import Base
 
 class User(Base):
@@ -10,3 +10,4 @@ class User(Base):
     email = Column(String, unique=True, index=True) 
     hashed_password = Column(String)
     role = Column(String, default="USER")
+    is_active = Column(Boolean, default=True)

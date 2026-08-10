@@ -2,8 +2,9 @@
 from fastapi import APIRouter, Depends
 import auth
 
-from routers.admin import admin_pet
-from routers import auth_router, pet
+from routers import product,request_router,access_router
+from routers.admin import admin_product, admin_request, admin_product_data
+from routers import auth_router
     
 
 # 1. ADMIN GROUP (Admin only)
@@ -11,16 +12,22 @@ admin_router = APIRouter(
     prefix="/admin",
     dependencies=[Depends(auth.get_current_admin)] # every API in this router requires admin authentication
 )
-
-admin_router.include_router(admin_pet.router, prefix="/pets")
+admin_router.include_router(admin_request.router, prefix="/requests")
+admin_router.include_router(admin_product.router, prefix="/products")
+admin_router.include_router(admin_product_data.router, prefix="/product-data")
 # admin_router.include_router(admin_product.router, prefix="/products")
 # admin_router.include_router(admin_order.router, prefix="/orders")
 
 
 # 2. USER GROUP (User only)
 user_router = APIRouter()
-user_router.include_router(pet.router, prefix="/pets")
+
+user_router.include_router(product.router)
+user_router.include_router(request_router.router)
+user_router.include_router(access_router.router)
+
 # user_router.include_router(user_product.router, prefix="/products")
+
 
 # 3. API V1 GROUP (Public)
 api_router = APIRouter(prefix="/api/v1")

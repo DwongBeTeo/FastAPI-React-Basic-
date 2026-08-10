@@ -3,15 +3,17 @@ from pydantic import BaseModel, EmailStr
 
 class UserCreate(BaseModel):
     username: str
-    email: EmailStr # Hoặc dùng EmailStr (cần cài pip install pydantic[email]) để tự validate định dạng @
+    email: EmailStr 
     password: str
     role: str = "USER"
+    is_active: bool = True
 
 class UserResponse(BaseModel):
     id: int
     username: str
     email: EmailStr | None = None
     role: str
+    is_active: bool
 
     class Config:
         from_attributes = True

@@ -15,8 +15,8 @@ const MenuBar = () => {
 
                     {/* 2. Desktop Navigation */}
                     <nav className="hidden md:flex items-center gap-8 lg:gap-12">
-                        <Link to="/pets" className="text-gray-600 hover:text-blue-600 font-medium transition-colors">
-                            Find a Pet
+                        <Link to="/products" className="text-gray-600 hover:text-blue-600 font-medium transition-colors">
+                            Product
                         </Link>
                         <Link to="/services" className="text-gray-600 hover:text-blue-600 font-medium transition-colors">
                             Services

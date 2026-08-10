@@ -1,6 +1,6 @@
 // src/pages/Login.jsx
 import React, { useContext, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode'; 
 
 import AuthContext from '../context/AuthContext';
@@ -44,7 +44,7 @@ const Login = () => {
 
             const decoded = jwtDecode(token);
             if (decoded.role === 'ADMIN') {
-                navigate('/admin/pets', { replace: true });
+                navigate('/admin/products', { replace: true });
             } else {
                 navigate('/', { replace: true }); 
             }
@@ -115,6 +115,14 @@ const Login = () => {
                             )}
                     </button>
                 </form>
+
+                {/* Regis redirect link */}
+                <div className="text-center text-sm">
+                    <span className="text-gray-600">Don't have an account? </span>
+                    <Link to="/register" className="font-medium text-blue-600 hover:text-blue-500">
+                        Register here
+                    </Link>
+                </div>
             </div>
         </div>
     );

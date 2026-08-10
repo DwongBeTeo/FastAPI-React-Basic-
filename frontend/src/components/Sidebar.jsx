@@ -106,7 +106,7 @@ const Sidebar = () => {
                     >
                         <LogOutIcon className="shrink-0" /> 
                         <span className={`whitespace-nowrap overflow-hidden transition-all duration-200 ${isExpanded ? 'w-auto opacity-100' : 'opacity-0 w-0'}`}>
-                            Đăng xuất
+                            Logout
                         </span>
                     </button>
                 </div>     

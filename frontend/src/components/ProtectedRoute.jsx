@@ -19,7 +19,7 @@ const ProtectedRoute = ({ allowedRoles }) => {
 
     if (allowedRoles && !allowedRoles.includes(user.role)) {
         console.warn("Bạn không có quyền truy cập trang này!");
-        return <Navigate to="/login" replace />; 
+        return <Navigate to="/not-found" replace />; 
     }
 
     return <Outlet />;

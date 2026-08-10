@@ -4,12 +4,15 @@ import App from './App';
 import './style.css';
 import React from 'react';
 import { AuthProvider } from './context/AuthContext';
+import { CartProvider } from './context/CartContext';
 
 const root = createRoot(document.getElementById('root'));
 root.render(
 <BrowserRouter>
    <AuthProvider>
+      {/* <CartProvider> */}
         <App />
+      {/* </CartProvider> */}
    </AuthProvider>
 </BrowserRouter>
 );
