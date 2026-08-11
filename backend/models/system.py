@@ -1,8 +1,8 @@
-# models/system.py
 from sqlalchemy import Column, Integer, String, ForeignKey, DateTime
 from database import Base
 import datetime
 
+# models/system.py
 class AuditLog(Base):
     __tablename__ = "audit_logs"
     

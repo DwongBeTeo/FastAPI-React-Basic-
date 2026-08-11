@@ -1,4 +1,3 @@
-# routers/access_router.py
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from typing import List
@@ -8,6 +7,7 @@ from database import get_db
 from services import access_service
 from schemas.data_access import UserDataAccessResponse, ProductDataResponse 
 
+# routers/access_router.py
 router = APIRouter(
     prefix="/access",
     tags=["Data Access (Dữ liệu thực tế)"]

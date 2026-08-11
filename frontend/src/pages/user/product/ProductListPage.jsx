@@ -105,9 +105,9 @@ const ProductListPage = () => {
                                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-1 focus:ring-blue-500 bg-white"
                             >
                                 <option value="">All prices</option>
-                                <option value="1000000">Under 1,000,000 VND</option>
-                                <option value="5000000">Under 5,000,000 VND</option>
-                                <option value="10000000">Under 10,000,000 VND</option>
+                                <option value="100">Under $100</option>
+                                <option value="200">Under $200</option>
+                                <option value="300">Under $300</option>
                             </select>
                         </div>
                     </div>

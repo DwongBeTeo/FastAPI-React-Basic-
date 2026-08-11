@@ -1,8 +1,8 @@
-# repositories/product_repository.py
 from sqlalchemy.orm import Session
 from typing import Optional
 import models
 
+# repositories/product_repository.py
 def get_last_product(db: Session):
     """Lấy sản phẩm cuối cùng được thêm vào để sinh mã tự động"""
     return db.query(models.Product).order_by(models.Product.id.desc()).first()

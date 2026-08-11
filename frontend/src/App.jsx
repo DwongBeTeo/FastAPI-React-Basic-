@@ -13,7 +13,6 @@ import ProductDataAdmin from './pages/admin/ProductDataAdmin';
 import UserDashboardPage from './pages/user/access/UserDashboardPage';
 import NotFound from './pages/NotFound';
 import ProductDetailPage from './pages/user/product/ProductDetailPage';
-import PriceTierPage from './pages/admin/PriceTierAdminPage';
 
 const App = () => {
   return (
@@ -38,7 +37,6 @@ const App = () => {
             <Route path="/admin/products" element={<ProductAdmin />} /> 
             <Route path="/admin/requests" element={<RequestAdminPage />} />
             <Route path="/admin/product-data" element={<ProductDataAdmin />} />
-            <Route path="/admin/price-tiers" element={<PriceTierPage />} />
         </Route>
 
       </Route>

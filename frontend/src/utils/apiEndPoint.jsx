@@ -29,14 +29,6 @@ export const API_ENDPOINTS = {
         DELETE: (id) => `/admin/product-data/${id}`,
     },
 
-    // ADMIN: PRICE TIERS (Cấu hình giá bậc thang)
-    ADMIN_PRICE_TIER: {
-        CREATE: '/admin/price-tiers/',
-        GET_BY_PRODUCT: (productId) => `/admin/price-tiers/product/${productId}`,
-        UPDATE: (tierId) => `/admin/price-tiers/${tierId}`,
-        DELETE: (tierId) => `/admin/price-tiers/${tierId}`,
-    },
-
     // === USER (PUBLIC) ===
     USER: {
         GET_AVAILABLE_PRODUCTS: '/products/',

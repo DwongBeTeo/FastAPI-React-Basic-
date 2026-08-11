@@ -1,6 +1,6 @@
-#schemas/user.py
 from pydantic import BaseModel, EmailStr
 
+#schemas/user.py
 class UserCreate(BaseModel):
     username: str
     email: EmailStr 

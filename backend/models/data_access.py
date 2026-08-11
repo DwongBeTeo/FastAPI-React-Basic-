@@ -1,8 +1,8 @@
-#models/data_access.py
 from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime, Date, text
 from sqlalchemy.orm import relationship
 from database import Base
 
+#models/data_access.py
 class DataRequest(Base):
     __tablename__ = "data_requests"
     

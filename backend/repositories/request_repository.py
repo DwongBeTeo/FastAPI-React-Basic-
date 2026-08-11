@@ -1,8 +1,8 @@
-# repositories/request_repository.py
 from sqlalchemy.orm import Session
 import models
 from datetime import date
 
+# repositories/request_repository.py
 def get_last_request_by_prefix(db: Session, prefix: str):
     return db.query(models.DataRequest).filter(
         models.DataRequest.reference_code.like(f"{prefix}%")

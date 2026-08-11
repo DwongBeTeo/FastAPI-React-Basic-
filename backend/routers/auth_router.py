@@ -1,4 +1,3 @@
-# routers/auth_router.py
 from fastapi import APIRouter, Depends
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
@@ -7,6 +6,7 @@ import schemas, auth, models
 from database import get_db
 from services import auth_service
 
+# routers/auth_router.py
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
 @router.post("/register", response_model=schemas.UserResponse)

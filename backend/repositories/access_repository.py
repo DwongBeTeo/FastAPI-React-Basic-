@@ -1,8 +1,8 @@
-# repositories/access_repository.py
 from sqlalchemy.orm import Session
 import models
 from datetime import datetime
 
+# repositories/access_repository.py
 def get_active_user_access(db: Session, user_id: int, product_id: int):
     """Check if a specific active access ticket exists."""
     return db.query(models.UserDataAccess).filter(

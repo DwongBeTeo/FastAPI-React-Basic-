@@ -5,7 +5,7 @@ import models, schemas
 from datetime import datetime, timedelta
 import calendar
 
-from repositories import product_repository, request_repository, access_repository, product_price_tier_repository
+from repositories import product_repository, request_repository, access_repository
 
 def generate_reference_code(db: Session) -> str:
     """Auto-generate sequential reference code (e.g., REQ-20260806-0001)"""
@@ -30,9 +30,6 @@ def calculate_months(start_date, end_date):
 # USER OPERATIONS
 def create_request(db: Session, request_data: schemas.DataRequestCreate, user_id: int):
     try:
-        now = datetime.now()
-        current_date = now.date()
-        
         # --- PREPARE DATA LISTS ---
         new_items = []
         total_request_price = 0
@@ -43,40 +40,37 @@ def create_request(db: Session, request_data: schemas.DataRequestCreate, user_id
             if not product:
                 raise HTTPException(status_code=404, detail=f"Product ID {item.product_id} not found.")
 
-            # 1. CHUẨN HÓA NGÀY THÁNG
+            # 1. CHUẨN HÓA NGÀY THÁNG KHÁCH HÀNG GỬI LÊN
             std_from_date = item.from_date.replace(day=1)
-            # to_date luôn là ngày cuối cùng của tháng đó (VD: 28, 30, hoặc 31)
             last_day = calendar.monthrange(item.to_date.year, item.to_date.month)[1]
             std_to_date = item.to_date.replace(day=last_day)
 
-            # 2.
-            # Validation Quá khứ (Ranh giới dưới)
-            if product.available_from and std_from_date < product.available_from:
+            # 2. CHUẨN HÓA NGÀY THÁNG CỦA SẢN PHẨM TRONG DB
+            std_avail_from = product.available_from.replace(day=1) if product.available_from else None
+            
+            std_avail_to = None
+            if product.available_to:
+                avail_last_day = calendar.monthrange(product.available_to.year, product.available_to.month)[1]
+                std_avail_to = product.available_to.replace(day=avail_last_day)
+
+
+            # 3. KIỂM TRA LOGIC THỜI GIAN (Rất đơn giản)
+            # Ranh giới dưới: Không được mua trước ngày data ra mắt
+            if std_avail_from and std_from_date < std_avail_from:
                 raise HTTPException(
                     status_code=400, 
-                    detail=f"Product '{product.name}' data is only available from {product.available_from.strftime('%m/%Y')}."
+                    detail=f"Product '{product.name}' data is only available from {std_avail_from.strftime('%m/%Y')}."
                 )
 
-            # Validation Tương lai (Ranh giới trên)
-            if std_to_date > current_date:
-                # Khách mua vắt ngang tới tương lai
-                if not product.is_ongoing:
-                    # Nếu data đã chết thì chặn lại ngay
-                    if product.available_to and std_to_date > product.available_to:
-                        raise HTTPException(
-                            status_code=400, 
-                            detail=f"Product '{product.name}' is no longer updating. Data only available until {product.available_to.strftime('%m/%Y')}."
-                        )
-                # Nếu is_ongoing == True, cho phép mua thả ga, không cần check available_to
-            else:
-                # Khách chỉ mua hoàn toàn trong quá khứ
-                if product.available_to and std_to_date > product.available_to:
-                    raise HTTPException(
-                        status_code=400, 
-                        detail=f"Product '{product.name}' data is only available until {product.available_to.strftime('%m/%Y')}."
-                    )
+            # Ranh giới trên: Không được mua vượt quá ngày data đóng cửa (nếu có)
+            # Nếu std_avail_to là None -> Cho phép mua vô hạn tới tương lai
+            if std_avail_to and std_to_date > std_avail_to:
+                raise HTTPException(
+                    status_code=400, 
+                    detail=f"Product '{product.name}' data is only available until {std_avail_to.strftime('%m/%Y')}."
+                )
 
-            # 3. CHỐNG TRÙNG LẶP (Logic cũ)
+            # 4. CHỐNG TRÙNG LẶP
             pending_item = request_repository.get_pending_request_item(db, user_id, item.product_id)
             if pending_item:
                 raise HTTPException(
@@ -93,15 +87,26 @@ def create_request(db: Session, request_data: schemas.DataRequestCreate, user_id
                     detail=f"Product ID {item.product_id} overlaps with an already approved access period."
                 )
 
-            # 4. TÍNH TOÁN GIÁ TIỀN TỰ ĐỘNG
+            # 5. TÍNH TOÁN GIÁ TIỀN (Sử dụng trực tiếp giá của Product)
             total_months = calculate_months(std_from_date, std_to_date)
-            price_tier = product_price_tier_repository.get_tier_by_months(db, item.product_id, total_months)
             
-            if not price_tier:
-                raise HTTPException(status_code=400, detail="Pricing configuration not found for this duration.")
+            # Tính giá gốc (Base Price)
+            base_price = product.price * total_months
+            applied_price = base_price
+            
+            # Logic áp dụng Promotion
+            if 12 <= total_months <= 24:
+                # Mua từ 1 - 2 năm: Giảm giá 20%
+                discount_rate = 0.20
+                applied_price = int(base_price * (1 - discount_rate))
                 
-            applied_price = price_tier.fixed_package_price if price_tier.fixed_package_price else (price_tier.price_per_month * total_months)
+            elif total_months > 24:
+                # Tùy chọn mở rộng: Mua trên 2 năm thì giảm 30% 
+                discount_rate = 0.30
+                applied_price = int(base_price * (1 - discount_rate))
+
             total_request_price += applied_price
+            
             new_items.append(
                 models.DataRequestItem(
                     product_id=item.product_id,

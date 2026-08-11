@@ -1,8 +1,8 @@
 export default function Home() {
     return (
         <div>
-            <h1>Trang chủ cửa hàng</h1>
-            <p>Hí</p>
+            <h1>This is Home Page</h1>
+            <p>Hi</p>
         </div>
     );
 }

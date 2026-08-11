@@ -1,7 +1,7 @@
-# repositories/user_repository.py
 from sqlalchemy.orm import Session
 import models
 
+# repositories/user_repository.py
 def get_user_by_email(db: Session, email: str):
     """Lấy thông tin user bằng email"""
     return db.query(models.User).filter(models.User.email == email).first()

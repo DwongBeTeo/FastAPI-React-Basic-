@@ -1,7 +1,7 @@
-# repositories/product_data_repository.py
 from sqlalchemy.orm import Session
 import models
 
+# repositories/product_data_repository.py
 def create_product_data(db: Session, data: models.ProductData):
     """Prepare to save new product data to the database (No commit)."""
     db.add(data)

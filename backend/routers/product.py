@@ -1,4 +1,3 @@
-# routers/product.py
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
@@ -8,6 +7,7 @@ from services import product_service
 from typing import Optional
 
 
+# routers/product.py
 router = APIRouter(
     prefix="/products",
     tags=["User Products"]

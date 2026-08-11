@@ -1,9 +1,9 @@
-# services/auth_service.py
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 import models, schemas, auth
 from repositories import user_repository
 
+# services/auth_service.py
 def register_user(db: Session, user: schemas.UserCreate):
     try:
         # 1. Check if email already exists
@@ -43,15 +43,15 @@ def register_user(db: Session, user: schemas.UserCreate):
 
 def authenticate_user(db: Session, form_data):
     # 1. find user by username
-    user = user_repository.get_user_by_username(db, username=form_data.username)
+    user = user_repository.get_user_by_email(db, email=form_data.username)
     
     # 2. check password
     if not user or not auth.verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Username or password is incorrect",
+            detail="Email or password is incorrect",
         )
     
     # 3. create token
-    access_token = auth.create_access_token(data={"sub": user.username, "role": user.role})
+    access_token = auth.create_access_token(data={"sub": user.email, "role": user.role})
     return {"access_token": access_token, "token_type": "bearer"}

@@ -4,4 +4,3 @@ from .user import User
 from .product import Product, ProductData
 from .data_access import DataRequest, DataRequestItem, UserDataAccess
 from .system import AuditLog, RefreshToken
-from .product_price_tier import ProductPriceTier
