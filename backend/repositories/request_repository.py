@@ -24,17 +24,16 @@ def get_overlapping_approved_item(db: Session, user_id: int, product_id: int, fr
         models.DataRequestItem.to_date >= from_date
     ).first()
 
-def save_request_with_items(db: Session, request: models.DataRequest, items: list[models.DataRequestItem]):
-    """Lưu phiếu yêu cầu và danh sách các item cùng lúc (Transaction)"""
+def create_request_with_items(db: Session, request: models.DataRequest, items: list[models.DataRequestItem]):
+    """Prepare to save the data request and its items to the database (No commit)."""
     db.add(request)
-    db.flush() # Đẩy xuống DB để lấy request.id nhưng chưa commit
+    db.flush() # Send to DB to retrieve request.id
     
     for item in items:
         item.request_id = request.id
         db.add(item)
         
-    db.commit()
-    db.refresh(request)
+    db.flush() # Send items to DB but do not finalize the transaction
     return request
 
 def get_requests_by_user_id(db: Session, user_id: int):
@@ -54,7 +53,7 @@ def get_request_by_id(db: Session, request_id: int):
 
 # access_service
 def get_request_item(db: Session, request_id: int, product_id: int):
-    """Lấy chi tiết item trong phiếu yêu cầu gốc"""
+    """Retrieve item details from the original request."""
     return db.query(models.DataRequestItem).filter(
         models.DataRequestItem.request_id == request_id,
         models.DataRequestItem.product_id == product_id

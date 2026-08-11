@@ -4,22 +4,18 @@ import { ShoppingCart, Calendar, CheckCircle, ArrowRight, ArrowLeft, Trash2, Inf
 import axiosConfig from '../../../utils/axiosConfig';
 import { API_ENDPOINTS } from '../../../utils/apiEndPoint';
 
-const RequestWizard = ({ onSuccess, onCancel,initialProduct = null }) => {
+const RequestWizard = ({ onSuccess, onCancel, initialProduct = null }) => {
     const [step, setStep] = useState(1);
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState('');
 
-    // Dữ liệu từ API
     const [products, setProducts] = useState([]);
     const [pendingProductIds, setPendingProductIds] = useState(new Set());
     const [activeAccessMap, setActiveAccessMap] = useState(new Map());
-
-    // State form (Giỏ hàng và Ghi chú)
     const [cartItems, setCartItems] = useState([]);
     const [notes, setNotes] = useState('');
 
-    // Fetch 3 API cùng lúc khi mở Wizard
     useEffect(() => {
         const fetchWizardData = async () => {
             setIsLoading(true);
@@ -51,29 +47,41 @@ const RequestWizard = ({ onSuccess, onCancel,initialProduct = null }) => {
                 });
                 setActiveAccessMap(aMap);
 
-                // --- LOGIC MỚI BỔ SUNG VÀO ĐÂY ---
-                // Nếu Wizard được mở bằng nút "Mua ngay" từ 1 sản phẩm cụ thể
-                if (initialProduct) {
-                    // Kiểm tra xem sản phẩm này đã bị PENDING chưa, nếu chưa thì tự động đưa vào giỏ
-                    if (!pIds.has(initialProduct.id)) {
-                        const fullProduct = (prodRes || []).find(p => p.id === initialProduct.id) || initialProduct;
-                        setCartItems([{
-                            product_id: fullProduct.id,
-                            product_name: fullProduct.name,
-                            product_code: fullProduct.code,
-                            available_from: fullProduct.available_from,
-                            available_to: fullProduct.available_to,
-                            access_type: 'READ',
-                            from_date: '',
-                            to_date: ''
-                        }]);
-                        setStep(2); // Tự động nhảy thẳng sang Bước 2 (Bắt user chọn ngày)
+                // Tự động bỏ vào giỏ nếu mở từ trang Detail
+                if (initialProduct && !pIds.has(initialProduct.id)) {
+                    // Cố gắng tìm product đầy đủ trong danh sách
+                    const fullProduct = (prodRes || []).find(p => p.id === initialProduct.id) || initialProduct;
+                    
+                    // Fetch thêm price_tiers nếu chưa có (rất quan trọng)
+                    let tiers = fullProduct.price_tiers;
+                    let basePrice = fullProduct.price;
+                    
+                    if (!tiers) {
+                        try {
+                            const detailRes = await axiosConfig.get(API_ENDPOINTS.USER.GET_PRODUCT_DETAIL(fullProduct.id));
+                            tiers = detailRes.price_tiers;
+                            basePrice = detailRes.price;
+                        } catch(e) { console.error(e); }
                     }
+
+                    setCartItems([{
+                        product_id: fullProduct.id,
+                        product_name: fullProduct.name,
+                        product_code: fullProduct.code,
+                        available_from: fullProduct.available_from,
+                        available_to: fullProduct.available_to,
+                        base_price: basePrice || 0,
+                        price_tiers: tiers || [],
+                        access_type: 'READ',
+                        from_date: '',
+                        to_date: ''
+                    }]);
+                    setStep(2);
                 }
 
             } catch (err) {
                 console.error("Lỗi tải dữ liệu Wizard:", err);
-                setError("Không thể tải dữ liệu khởi tạo. Vui lòng thử lại.");
+                setError("Cannot load data. Please try again.");
             } finally {
                 setIsLoading(false);
             }
@@ -82,43 +90,96 @@ const RequestWizard = ({ onSuccess, onCancel,initialProduct = null }) => {
         fetchWizardData();
     }, [initialProduct]);
 
-    // --- STEP 1 HANDLERS: CHỌN SẢN PHẨM ---
-    const toggleCartItem = (product) => {
-        const isExists = cartItems.find(item => item.product_id === product.id);
-        if (isExists) {
-            setCartItems(cartItems.filter(item => item.product_id !== product.id));
-        } else {
-            setCartItems([...cartItems, {
-                product_id: product.id,
-                product_name: product.name,
-                product_code: product.code,
-                available_from: product.available_from, // Lấy mốc giới hạn từ sản phẩm
-                available_to: product.available_to,
-                access_type: 'READ',
-                from_date: '',
-                to_date: ''
-            }]);
-        }
+    // --- HÀM TÍNH TOÁN AN TOÀN ---
+    const calculateMonths = (startDate, endDate) => {
+        if (!startDate || !endDate) return 0; // Chặn lỗi chuỗi rỗng
+        
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        
+        if (isNaN(start.getTime()) || isNaN(end.getTime())) return 0;
+        
+        // Công thức tính số tháng chính xác (Bao gồm cả tháng bắt đầu và kết thúc)
+        return (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()) + 1;
     };
 
-    // --- STEP 2 HANDLERS: CẤU HÌNH NGÀY ---
+    const getEstimatedPrice = (item) => {
+        const months = calculateMonths(item.from_date, item.to_date);
+        if (months <= 0) return 0;
+
+        const tiers = item.price_tiers || [];
+        
+        // Tìm gói giá phù hợp (Convert ra Number để tránh so sánh chuỗi)
+        const matchedTier = tiers.find(t => {
+            const min = Number(t.min_months);
+            const max = t.max_months !== null ? Number(t.max_months) : null;
+            return months >= min && (max === null || months <= max);
+        });
+
+        if (matchedTier) {
+            if (matchedTier.fixed_package_price !== null) {
+                return Number(matchedTier.fixed_package_price);
+            }
+            return Number(matchedTier.price_per_month) * months;
+        }
+
+        // Fallback: Nhân giá cơ bản
+        const base = item.base_price ? Number(item.base_price) : 0;
+        return base * months;
+    };
+
+    // --- XỬ LÝ THÊM/XÓA SẢN PHẨM ---
+    const handleAddToCart = async (product) => {
+        // Kiểm tra xem đã có trong giỏ chưa
+        if (cartItems.some(i => i.product_id === product.id)) return;
+
+        // Bật loading nhỏ nếu cần fetch
+        const tempCart = [...cartItems];
+        let tiers = product.price_tiers;
+        let basePrice = product.price;
+
+        if (!tiers) {
+            try {
+                const res = await axiosConfig.get(API_ENDPOINTS.USER.GET_PRODUCT_DETAIL(product.id));
+                tiers = res.price_tiers;
+                basePrice = res.price;
+            } catch (e) {
+                console.error("Lỗi lấy giá:", e);
+            }
+        }
+
+        setCartItems([...tempCart, {
+            product_id: product.id,
+            product_name: product.name,
+            product_code: product.code,
+            available_from: product.available_from,
+            available_to: product.available_to,
+            base_price: basePrice || 0,
+            price_tiers: tiers || [],
+            access_type: 'READ',
+            from_date: '',
+            to_date: ''
+        }]);
+    };
+
+    const handleRemoveFromCart = (productId) => {
+        setCartItems(cartItems.filter(item => item.product_id !== productId));
+    };
+
     const handleUpdateConfig = (index, field, value) => {
         const newCart = [...cartItems];
         newCart[index][field] = value;
         setCartItems(newCart);
     };
 
-    // Kiểm tra xem tất cả các item trong giỏ đã điền đủ ngày và hợp lệ chưa (dùng cho UX mờ nút Tiếp tục)
     const isStep2Valid = cartItems.length > 0 && cartItems.every(item => {
         if (!item.from_date || !item.to_date) return false;
         if (item.from_date > item.to_date) return false;
-        // Kiểm tra chặn theo available_from / available_to của sản phẩm
         if (item.available_from && item.from_date < item.available_from) return false;
         if (item.available_to && item.to_date > item.available_to) return false;
         return true;
     });
 
-    // --- STEP 3: SUBMIT ---
     const handleSubmit = async () => {
         setIsSubmitting(true);
         setError('');
@@ -137,7 +198,7 @@ const RequestWizard = ({ onSuccess, onCancel,initialProduct = null }) => {
             await axiosConfig.post(API_ENDPOINTS.USER_REQUEST.CREATE, payload);
             onSuccess(); 
         } catch (err) {
-            setError(err.response?.data?.detail || "Có lỗi khi gửi yêu cầu.");
+            setError(err.response?.data?.detail || "Error while sending request.");
         } finally {
             setIsSubmitting(false);
         }
@@ -147,7 +208,7 @@ const RequestWizard = ({ onSuccess, onCancel,initialProduct = null }) => {
 
     return (
         <div className="flex flex-col h-[75vh] bg-white">
-            {/* TIẾN TRÌNH (Stepper) */}
+            {/* STEPPER */}
             <div className="flex justify-between items-center p-6 border-b border-gray-100 bg-gray-50 shrink-0">
                 {[
                     { num: 1, label: 'Select product', icon: ShoppingCart },
@@ -163,17 +224,15 @@ const RequestWizard = ({ onSuccess, onCancel,initialProduct = null }) => {
                 ))}
             </div>
 
-            {/* ERROR MESSAGE */}
             {error && (
                 <div className="mx-6 mt-4 p-3 bg-red-50 text-red-600 rounded-lg text-sm border border-red-100">
                     <span className="font-bold mr-2">Error:</span>{error}
                 </div>
             )}
 
-            {/* NỘI DUNG TỪNG BƯỚC */}
             <div className="flex-1 overflow-y-auto p-6">
                 
-                {/* STEP 1: CHỌN SẢN PHẨM */}
+                {/* STEP 1 */}
                 {step === 1 && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {products.map(product => {
@@ -190,18 +249,16 @@ const RequestWizard = ({ onSuccess, onCancel,initialProduct = null }) => {
                                                 <h3 className="font-bold text-gray-900">{product.name}</h3>
                                             </div>
                                             <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-1 rounded">
-                                                {product.price.toLocaleString('vi-VN')} đ
+                                                Starts from ${product.price?.toLocaleString('en-US') || 0}
                                             </span>
                                         </div>
 
-                                        {/* Hiển thị giới hạn ngày của sản phẩm (nếu có) */}
                                         {(product.available_from || product.available_to) && (
                                             <p className="text-xs text-gray-500 mb-2">
                                                 Data range: {product.available_from || 'Any'} ➔ {product.available_to || 'Now'}
                                             </p>
                                         )}
 
-                                        {/* Cảnh báo Quyền đang có */}
                                         {activeAcc && (
                                             <div className="mb-2 text-[11px] text-green-700 bg-green-100 px-2 py-1 rounded flex items-center gap-1">
                                                 <Info size={12}/> Access granted: {new Date(activeAcc.expires_at).toLocaleDateString()}
@@ -209,14 +266,13 @@ const RequestWizard = ({ onSuccess, onCancel,initialProduct = null }) => {
                                         )}
                                     </div>
 
-                                    {/* Nút Chọn / Bỏ chọn */}
                                     {isPending ? (
                                         <div className="mt-4 w-full text-center py-2 bg-gray-100 text-gray-400 text-sm font-medium rounded-lg cursor-not-allowed">
                                             Pending
                                         </div>
                                     ) : (
                                         <button 
-                                            onClick={() => toggleCartItem(product)}
+                                            onClick={() => inCart ? handleRemoveFromCart(product.id) : handleAddToCart(product)}
                                             className={`mt-4 w-full py-2 rounded-lg text-sm font-medium transition-colors ${
                                                 inCart ? 'bg-red-50 text-red-600 hover:bg-red-100' : 'bg-blue-600 text-white hover:bg-blue-700'
                                             }`}
@@ -230,7 +286,7 @@ const RequestWizard = ({ onSuccess, onCancel,initialProduct = null }) => {
                     </div>
                 )}
 
-                {/* STEP 2: CẤU HÌNH NGÀY (Sử dụng input type="date" chặn giới hạn) */}
+                {/* STEP 2 */}
                 {step === 2 && (
                     <div className="space-y-4">
                         <p className="text-sm text-gray-500 mb-2">Please select the time period for which you want to access data for each product:</p>
@@ -240,17 +296,17 @@ const RequestWizard = ({ onSuccess, onCancel,initialProduct = null }) => {
                                 <div className="flex justify-between items-center mb-3">
                                     <h4 className="font-bold text-gray-900">{item.product_code} - {item.product_name}</h4>
                                     <button 
-                                        onClick={() => toggleCartItem({ id: item.product_id })}
+                                        onClick={() => handleRemoveFromCart(item.product_id)} // <-- ĐÃ SỬA NÚT XÓA Ở ĐÂY
                                         className="text-red-500 hover:bg-red-100 p-1.5 rounded-lg transition-colors"
-                                        title="Xóa sản phẩm"
+                                        title="Remove product"
                                     >
                                         <Trash2 size={16}/>
                                     </button>
                                 </div>
 
                                 {item.available_from || item.available_to ? (
-                                    <p className="text-xs text-amber-600 bg-amber-50 p-2 rounded mb-3">
-                                        * Note: This product only allows selection from <b>{item.available_from || 'system'}</b> to <b>{item.available_to || 'now'}</b>.
+                                    <p className="text-xs text-amber-600 bg-amber-50 p-2 rounded mb-3 border border-amber-100">
+                                        * Note: This product only allows selection from <b>{item.available_from || 'system start'}</b> to <b>{item.available_to || 'now'}</b>.
                                     </p>
                                 ) : null}
 
@@ -267,7 +323,7 @@ const RequestWizard = ({ onSuccess, onCancel,initialProduct = null }) => {
                                         </select>
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-semibold text-gray-600 mb-1">Từ ngày (From Date)</label>
+                                        <label className="block text-xs font-semibold text-gray-600 mb-1">From Date</label>
                                         <input 
                                             type="date" 
                                             value={item.from_date}
@@ -291,12 +347,22 @@ const RequestWizard = ({ onSuccess, onCancel,initialProduct = null }) => {
                                         />
                                     </div>
                                 </div>
+
+                                {/* KHỐI TÍNH TIỀN (Ra ngoài Grid để full width) */}
+                                <div className="mt-4 pt-3 border-t border-gray-200 flex justify-between items-center bg-blue-50/30 px-4 py-3 rounded-lg border">
+                                    <span className="text-sm font-medium text-gray-600">
+                                        Estimated Time: <b className="text-blue-600">{calculateMonths(item.from_date, item.to_date)} months</b>
+                                    </span>
+                                    <span className="text-sm font-medium text-gray-600">
+                                        Est. Price: <b className="text-xl text-green-600">${getEstimatedPrice(item).toLocaleString('en-US')}</b>
+                                    </span>
+                                </div>
                             </div>
                         ))}
                     </div>
                 )}
 
-                {/* STEP 3: XÁC NHẬN & GỬI */}
+                {/* STEP 3 */}
                 {step === 3 && (
                     <div className="space-y-6">
                         <div className="bg-white border rounded-xl overflow-hidden shadow-sm">
@@ -304,16 +370,18 @@ const RequestWizard = ({ onSuccess, onCancel,initialProduct = null }) => {
                                 <thead className="bg-gray-50 border-b text-gray-500 uppercase text-xs">
                                     <tr>
                                         <th className="px-4 py-3">Product</th>
-                                        <th className="px-4 py-3">Type</th>
-                                        <th className="px-4 py-3">Access time</th>
+                                        <th className="px-4 py-3 text-center">Type</th>
+                                        <th className="px-4 py-3 text-right">Access time</th>
+                                        <th className="px-4 py-3 text-right">Est. Price</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
                                     {cartItems.map(item => (
                                         <tr key={item.product_id}>
                                             <td className="px-4 py-3 font-medium text-gray-900">{item.product_name}</td>
-                                            <td className="px-4 py-3"><span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs font-bold">{item.access_type}</span></td>
-                                            <td className="px-4 py-3 text-gray-600 font-mono">{item.from_date} ➔ {item.to_date}</td>
+                                            <td className="px-4 py-3 text-center"><span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs font-bold">{item.access_type}</span></td>
+                                            <td className="px-4 py-3 text-gray-600 font-mono text-right">{item.from_date} ➔ {item.to_date}</td>
+                                            <td className="px-4 py-3 font-bold text-green-600 text-right">${getEstimatedPrice(item).toLocaleString('en-US')}</td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -321,12 +389,12 @@ const RequestWizard = ({ onSuccess, onCancel,initialProduct = null }) => {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-bold text-gray-700 mb-2">Note</label>
+                            <label className="block text-sm font-bold text-gray-700 mb-2">Note (Optional)</label>
                             <textarea 
                                 value={notes}
                                 onChange={(e) => setNotes(e.target.value)}
                                 rows="3"
-                                placeholder="Reason..."
+                                placeholder="Write a note to admin..."
                                 className="w-full p-3 border border-gray-300 rounded-xl outline-none focus:border-blue-500 text-sm"
                             />
                         </div>
@@ -334,27 +402,27 @@ const RequestWizard = ({ onSuccess, onCancel,initialProduct = null }) => {
                 )}
             </div>
 
-            {/* THANH ĐIỀU HƯỚNG DƯỚI CÙNG */}
+            {/* BUTTONS */}
             <div className="p-5 border-t border-gray-100 bg-gray-50 flex justify-between items-center shrink-0">
                 <button 
                     onClick={step === 1 ? onCancel : () => setStep(step - 1)}
                     className="px-5 py-2.5 text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 font-medium flex items-center gap-2 text-sm"
                 >
-                    {step === 1 ? 'Hủy bỏ' : <><ArrowLeft size={16}/>Back</>}
+                    {step === 1 ? 'Cancel' : <><ArrowLeft size={16}/>Back</>}
                 </button>
 
                 {step < 3 ? (
                     <button 
                         onClick={() => {
-                            if (step === 1 && cartItems.length === 0) return setError("Vui lòng chọn ít nhất 1 sản phẩm.");
-                            if (step === 2 && !isStep2Valid) return setError("Vui lòng chọn ngày hợp lệ cho tất cả sản phẩm trước khi tiếp tục.");
+                            if (step === 1 && cartItems.length === 0) return setError("Please select at least one product.");
+                            if (step === 2 && !isStep2Valid) return setError("Please select valid dates for all products.");
                             setError('');
                             setStep(step + 1);
                         }}
                         disabled={step === 1 && cartItems.length === 0}
                         className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium flex items-center gap-2 shadow-sm text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        Go on <ArrowRight size={16}/>
+                        Continue <ArrowRight size={16}/>
                     </button>
                 ) : (
                     <button 
@@ -363,7 +431,7 @@ const RequestWizard = ({ onSuccess, onCancel,initialProduct = null }) => {
                         className="px-6 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium flex items-center gap-2 shadow-sm text-sm disabled:opacity-70"
                     >
                         {isSubmitting ? <LoaderCircle className="animate-spin w-4 h-4"/> : <CheckCircle size={16}/>}
-                        Send request to admin
+                        Send Request
                     </button>
                 )}
             </div>

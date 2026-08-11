@@ -13,7 +13,7 @@ const ProductList = ({ products, onDelete, onEdit }) => {
                             <th className="px-4 py-4 font-semibold tracking-wider">Product Code</th>
                             <th className="px-4 py-4 font-semibold tracking-wider">Name</th>
                             <th className="px-4 py-4 font-semibold tracking-wider">Time</th>
-                            <th className="px-4 py-4 font-semibold tracking-wider">Price</th>
+                            <th className="px-4 py-4 font-semibold tracking-wider">Starts From ($)</th>
                             <th className="px-4 py-4 font-semibold tracking-wider">Status</th>
                             <th className="px-4 py-4 font-semibold tracking-wider text-right">Action</th>
                         </tr>
@@ -48,7 +48,7 @@ const ProductList = ({ products, onDelete, onEdit }) => {
                                     </td>
 
                                     <td className="px-4 py-4 font-semibold text-blue-600">
-                                        {product.price.toLocaleString('vi-VN')} đ
+                                        $ {product.price.toLocaleString('en-US')}
                                     </td>
                                     <td className="px-4 py-4">
                                         <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${product.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>

@@ -29,19 +29,17 @@ def get_products(
     return query.order_by(models.Product.id).offset(skip).limit(limit).all()
 
 def create_product(db: Session, product: models.Product):
-    """Lưu sản phẩm mới vào DB"""
+    """Chuẩn bị lưu sản phẩm mới vào DB"""
     db.add(product)
-    db.commit()
-    db.refresh(product)
+    db.flush() # Đẩy lệnh xuống DB để lấy ID, nhưng CHƯA chốt giao dịch
     return product
 
 def update_product(db: Session, product: models.Product):
-    """Lưu các thay đổi của sản phẩm hiện tại"""
-    db.commit()
-    db.refresh(product)
+    """Báo cho DB biết có thay đổi"""
+    db.flush()
     return product
 
 def delete_product(db: Session, product: models.Product):
-    """Xóa sản phẩm khỏi DB"""
+    """Chuẩn bị xóa sản phẩm khỏi DB"""
     db.delete(product)
-    db.commit()
+    db.flush()

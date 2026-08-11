@@ -11,8 +11,7 @@ def get_user_by_username(db: Session, username: str):
     return db.query(models.User).filter(models.User.username == username).first()
 
 def create_user(db: Session, user: models.User):
-    """Lưu user mới vào database"""
+    """Chuẩn bị lưu user mới vào database (chưa commit)"""
     db.add(user)
-    db.commit()
-    db.refresh(user)
+    db.flush() #Get new ID after creat but not save
     return user

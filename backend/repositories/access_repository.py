@@ -4,6 +4,7 @@ import models
 from datetime import datetime
 
 def get_active_user_access(db: Session, user_id: int, product_id: int):
+    """Check if a specific active access ticket exists."""
     return db.query(models.UserDataAccess).filter(
         models.UserDataAccess.user_id == user_id,
         models.UserDataAccess.product_id == product_id,
@@ -11,12 +12,13 @@ def get_active_user_access(db: Session, user_id: int, product_id: int):
     ).first()
 
 def add_user_access(db: Session, access: models.UserDataAccess):
-    """Chỉ add vào phiên làm việc, commit ở Service để đảm bảo đồng bộ (Atomicity)"""
+    """Add new access ticket to the session (Commit is handled in Service)."""
     db.add(access)
+    db.flush()
+    return access
 
-# access_service
 def get_active_accesses_by_user(db: Session, user_id: int, current_time: datetime):
-    """Lấy danh sách các quyền truy cập hiện đang còn hiệu lực của User"""
+    """Retrieve a list of active and unexpired access tickets for a user."""
     return db.query(models.UserDataAccess).filter(
         models.UserDataAccess.user_id == user_id,
         models.UserDataAccess.is_active == True,
@@ -24,7 +26,7 @@ def get_active_accesses_by_user(db: Session, user_id: int, current_time: datetim
     ).all()
 
 def get_valid_access_by_user_and_product(db: Session, user_id: int, product_id: int, current_time: datetime):
-    """Lấy một quyền truy cập hợp lệ cụ thể"""
+    """Retrieve a specific valid and unexpired access ticket for gatekeeping."""
     return db.query(models.UserDataAccess).filter(
         models.UserDataAccess.user_id == user_id,
         models.UserDataAccess.product_id == product_id,

@@ -57,8 +57,10 @@ const RequestAdminPage = () => {
                             <th className="px-6 py-4">Code</th>
                             <th className="px-6 py-4">User ID</th>
                             <th className="px-6 py-4">Status</th>
-                            <th className="px-6 py-4">Number of product</th>
-                            <th className="px-6 py-4 text-right">Active</th>
+                            <th className="px-6 py-4">Items</th>
+                            {/* CỘT MỚI: Hiển thị giá tiền */}
+                            <th className="px-6 py-4 text-right">Total Amount</th>
+                            <th className="px-6 py-4 text-right">Action</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
@@ -67,16 +69,27 @@ const RequestAdminPage = () => {
                                 <td className="px-6 py-4 font-mono text-gray-900">{req.reference_code}</td>
                                 <td className="px-6 py-4">ID: {req.user_id}</td>
                                 <td className="px-6 py-4">
-                                    <span className="font-bold text-xs">{req.status}</span>
+                                    <span className={`px-2.5 py-1 rounded-md text-xs font-bold 
+                                        ${req.status === 'APPROVED' ? 'bg-green-100 text-green-700' : 
+                                          req.status === 'REJECTED' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}`}
+                                    >
+                                        {req.status}
+                                    </span>
                                 </td>
-                                <td className="px-6 py-4">{req.items?.length || 0} product</td>
+                                <td className="px-6 py-4">{req.items?.length || 0} product(s)</td>
+                                
+                                {/* CỘT MỚI: In ra tổng tiền của request này */}
+                                <td className="px-6 py-4 text-right font-bold text-blue-600">
+                                    ${req.total_amount ? req.total_amount.toLocaleString('en-US') : '0'}
+                                </td>
+
                                 <td className="px-6 py-4 text-right">
                                     {req.status === 'PENDING' && (
                                         <div className="flex justify-end gap-2">
-                                            <button onClick={() => handleAction(req.id, 'APPROVE')} className="p-2 text-green-600 hover:bg-green-100 rounded" title="Duyệt">
+                                            <button onClick={() => handleAction(req.id, 'APPROVE')} className="p-2 text-green-600 hover:bg-green-100 rounded" title="Approve">
                                                 <CheckCircle size={18}/>
                                             </button>
-                                            <button onClick={() => handleAction(req.id, 'REJECT')} className="p-2 text-red-600 hover:bg-red-100 rounded" title="Từ chối">
+                                            <button onClick={() => handleAction(req.id, 'REJECT')} className="p-2 text-red-600 hover:bg-red-100 rounded" title="Reject">
                                                 <XCircle size={18}/>
                                             </button>
                                         </div>

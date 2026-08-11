@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends
 import auth
 
 from routers import product,request_router,access_router
-from routers.admin import admin_product, admin_request, admin_product_data
+from routers.admin import admin_product, admin_request, admin_product_data, admin_price_tier_router
 from routers import auth_router
     
 
@@ -15,6 +15,7 @@ admin_router = APIRouter(
 admin_router.include_router(admin_request.router, prefix="/requests")
 admin_router.include_router(admin_product.router, prefix="/products")
 admin_router.include_router(admin_product_data.router, prefix="/product-data")
+admin_router.include_router(admin_price_tier_router.router, prefix='/price-tiers')
 # admin_router.include_router(admin_product.router, prefix="/products")
 # admin_router.include_router(admin_order.router, prefix="/orders")
 

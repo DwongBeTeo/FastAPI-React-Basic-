@@ -8,7 +8,7 @@ class DataRequestItemBase(BaseModel):
     product_id: int
     access_type: str
     from_date: date  
-    to_date: date    # YYYY-MM-DD
+    to_date: date   
 
 class DataRequestItemCreate(DataRequestItemBase):
     pass
@@ -16,21 +16,22 @@ class DataRequestItemCreate(DataRequestItemBase):
 class DataRequestItemResponse(DataRequestItemBase):
     id: int
     request_id: int
+    calculated_months: int  
+    applied_price: int      
 
     class Config:
         from_attributes = True
 
 # --- DataRequest ---
-# Payload Frontend gửi lên khi Submit (Chỉ bao gồm mảng items)
 class DataRequestCreate(BaseModel):
     items: List[DataRequestItemCreate]
 
-# Schema trả về cho Frontend (Bao gồm các trường Backend tự sinh)
 class DataRequestResponse(BaseModel):
     id: int
     reference_code: str
     user_id: int
     status: str
+    total_amount: int       
     reviewed_by: Optional[int] = None
     items: List[DataRequestItemResponse] = []
 
@@ -48,7 +49,7 @@ class UserDataAccessResponse(BaseModel):
     is_active: bool
 
     class Config:
-        from_attributes = True # Sửa: Bổ sung Config để ORM có thể map data
+        from_attributes = True 
 
 # --- ProductData ---
 class ProductDataResponse(BaseModel):

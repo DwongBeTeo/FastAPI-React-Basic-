@@ -3,7 +3,7 @@ import React from 'react';
 import { Edit, Trash2, DatabaseBackup } from 'lucide-react';
 
 const ProductDataList = ({ dataList, products, onEdit, onDelete }) => {
-    // Hàm phụ trợ map product_id ra tên sản phẩm
+    // Helper function to map product_id to product name
     const getProductName = (id) => {
         const product = products.find(p => p.id === id);
         return product ? `${product.code} - ${product.name}` : `ID: ${id}`;
@@ -13,7 +13,7 @@ const ProductDataList = ({ dataList, products, onEdit, onDelete }) => {
         return (
             <div className="py-16 bg-white rounded-xl border border-gray-100 text-center flex flex-col items-center">
                 <DatabaseBackup className="w-12 h-12 text-gray-300 mb-3" />
-                <p className="text-gray-500">Chưa có bản ghi dữ liệu nào.</p>
+                <p className="text-gray-500">No data records available.</p>
             </div>
         );
     }
@@ -25,10 +25,10 @@ const ProductDataList = ({ dataList, products, onEdit, onDelete }) => {
                     <thead className="bg-gray-50 border-b border-gray-100 text-gray-500 uppercase text-xs">
                         <tr>
                             <th className="px-6 py-4">ID</th>
-                            <th className="px-6 py-4">Thuộc Sản phẩm</th>
-                            <th className="px-6 py-4">Ngày Dữ Liệu</th>
-                            <th className="px-6 py-4">Trích đoạn Nội dung</th>
-                            <th className="px-6 py-4 text-right">Hành động</th>
+                            <th className="px-6 py-4">Product</th>
+                            <th className="px-6 py-4">Data Date</th>
+                            <th className="px-6 py-4">Content Excerpt</th>
+                            <th className="px-6 py-4 text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">

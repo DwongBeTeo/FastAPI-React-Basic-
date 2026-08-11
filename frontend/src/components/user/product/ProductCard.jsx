@@ -19,8 +19,9 @@ const ProductCard = ({ product, onBuyClick }) => {
                 <p className="text-xs text-gray-400 font-mono mb-1">{product.code}</p>
                 <h3 className="text-lg font-bold text-gray-900 mb-2 leading-tight">{product.name}</h3>
                 
-                <p className="text-xl font-bold text-blue-600 mt-auto pt-4">
-                    {product.price.toLocaleString('vi-VN')} đ
+                <p className="text-xl font-bold text-blue-600 mt-auto pt-4 flex items-end gap-1">
+                    Starts from: ${product.price ? product.price.toLocaleString('en-US') : '0'} 
+                    <span className="text-sm font-normal text-gray-500 mb-0.5">/ month</span>
                 </p>
 
                 <div className="mt-4 pt-4 border-t border-gray-100 flex gap-2">

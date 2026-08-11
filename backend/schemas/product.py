@@ -3,6 +3,7 @@ from datetime import date
 
 from pydantic import BaseModel
 from typing import Optional
+from schemas.product_price_tier import ProductPriceTierResponse
 
 
 class ProductBase(BaseModel):
@@ -12,6 +13,8 @@ class ProductBase(BaseModel):
     is_active: bool = True
     available_from: Optional[date] = None
     available_to: Optional[date] = None
+
+    price_tiers: list[ProductPriceTierResponse] = []
 
 # Client gửi lên để tạo/update
 class ProductCreate(ProductBase):

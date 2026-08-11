@@ -106,7 +106,7 @@ const AddProductForm = ({ onSubmit, onCancel, initialData, isEditing }) => {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Price (VNĐ) <span className="text-red-500">*</span></label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Base Retail Price / Month ($) <span className="text-red-500">*</span></label>
                             <input 
                                 type="number" 
                                 value={formData.price}

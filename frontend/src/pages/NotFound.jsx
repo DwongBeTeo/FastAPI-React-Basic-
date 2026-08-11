@@ -14,25 +14,25 @@ const NotFound = () => {
                 </div>
                 
                 <h1 className="text-7xl font-extrabold text-gray-900 tracking-tight mb-2">404</h1>
-                <h2 className="text-2xl font-bold text-gray-900 sm:text-3xl">Truy cập bị từ chối</h2>
+                <h2 className="text-2xl font-bold text-gray-900 sm:text-3xl">Access Denied</h2>
                 
                 <p className="mt-4 text-gray-500 text-sm sm:text-base">
-                    Xin lỗi, trang bạn đang tìm kiếm không tồn tại hoặc bạn <b>không có quyền</b> truy cập vào khu vực này.
+                    Sorry, the page you are looking for does not exist or you <b>do not have permission</b> to access this area.
                 </p>
                 
                 <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
                     <button
-                        onClick={() => navigate(-1)} // Quay lại trang trước đó
+                        onClick={() => navigate(-1)} // Go back to the previous page
                         className="inline-flex items-center justify-center gap-2 px-5 py-2.5 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors shadow-sm"
                     >
-                        <ArrowLeft size={18} /> Quay lại
+                        <ArrowLeft size={18} /> Go back
                     </button>
                     
                     <Link
                         to="/"
                         className="inline-flex items-center justify-center gap-2 px-5 py-2.5 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-sm"
                     >
-                        <Home size={18} /> Về trang chủ
+                        <Home size={18} /> Back to home
                     </Link>
                 </div>
             </div>
