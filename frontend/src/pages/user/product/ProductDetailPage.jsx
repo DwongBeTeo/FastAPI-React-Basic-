@@ -1,7 +1,7 @@
 // src/pages/user/product/ProductDetailPage.jsx
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, CheckCircle2, ShoppingCart, LoaderCircle } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, ShoppingCart, LoaderCircle, Tag } from 'lucide-react';
 import axiosConfig from '../../../utils/axiosConfig';
 import { Modal } from '../../../components/Modal';
 import RequestWizard from '../../../components/user/request/RequestWizard';
@@ -30,8 +30,8 @@ const ProductDetailPage = () => {
         fetchDetail();
     }, [id]);
 
-    if (loading) return <div className="min-h-screen flex justify-center pt-20"><LoaderCircle className="animate-spin w-8 h-8 text-blue-600" /></div>;
-    if (!product) return <div className="text-center pt-20">Không tìm thấy sản phẩm.</div>;
+    if (loading) return <div className="min-h-screen flex justify-center pt-20"><LoaderCircle className="animate-spin w-8 h-8 text-[#4ade80]" /></div>;
+    if (!product) return <div className="text-center pt-20">Product not found.</div>;
 
     const handleBuyClick = () => {
         if (!localStorage.getItem('token')) {
@@ -41,94 +41,76 @@ const ProductDetailPage = () => {
         setIsWizardOpen(true);
     };
 
-    // Tính giá sau chiết khấu hiển thị cho khách xem
     const basePrice = product.price || 0;
     const tier20Price = Math.floor(basePrice * 0.8);
     const tier30Price = Math.floor(basePrice * 0.7);
 
     return (
-        <div className="bg-gray-50 min-h-screen pb-12 pt-6 px-4">
+        <div className="min-h-screen pb-12 pt-8 px-4">
             <div className="max-w-5xl mx-auto">
-                <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-gray-500 hover:text-blue-600 mb-6 font-medium text-sm transition-colors">
+                <button onClick={() => navigate(-1)} className="flex items-center gap-2 hover:text-[#4ade80] mb-6 font-medium text-sm transition-colors">
                     <ArrowLeft size={16} /> Quay lại danh mục
                 </button>
-
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="bg-[#111827] rounded-2xl shadow-lg border border-slate-800 overflow-hidden">
+                    
                     {/* Header Sản phẩm */}
-                    <div className="p-8 border-b border-gray-100">
-                        <div className="flex justify-between items-start">
+                    <div className="p-8 border-b border-slate-800">
+                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                             <div>
-                                <p className="text-sm font-mono text-gray-400 mb-2">{product.code}</p>
-                                <h1 className="text-3xl font-bold text-gray-900 mb-4">{product.name}</h1>
+                                <p className="text-sm font-mono mb-2">{product.code}</p>
+                                <h1 className="text-3xl font-bold mb-3">{product.name}</h1>
                                 
-                                <div className="flex items-center gap-4 text-sm">
-                                    <span className={`px-3 py-1 rounded-full font-bold ${product.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                        {product.is_active ? 'Đang mở bán' : 'Ngừng kinh doanh'}
-                                    </span>
-                                </div>
+                                <span className={`px-3 py-1.5 rounded text-xs font-bold uppercase tracking-wider ${product.is_active ? 'bg-[#064e3b]/60 text-[#4ade80]' : 'bg-red-900/30 text-red-400'}`}>
+                                    {product.is_active ? 'Đang mở bán' : 'Ngừng kinh doanh'}
+                                </span>
                             </div>
+                            
                             <button 
                                 onClick={handleBuyClick}
                                 disabled={!product.is_active}
-                                className="flex items-center gap-2 px-8 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-colors shadow-sm"
+                                className="flex items-center gap-2 px-8 py-3 bg-[#4ade80] text-slate-900 font-bold rounded-lg hover:bg-[#22c55e] disabled:opacity-50 transition-colors shadow-lg shadow-green-900/20 w-full md:w-auto justify-center"
                             >
-                                <ShoppingCart size={20}/> Chọn Mua
+                                <ShoppingCart size={20}/> Chọn Mua Ngay
                             </button>
                         </div>
                     </div>
 
-                    {/* Bảng Giá Tĩnh (Static Pricing Table) */}
-                    <div className="p-8 bg-gray-50/50">
+                    {/* Bảng Giá Tĩnh */}
+                    <div className="p-8 bg-[#0B1121]/30">
                         <div className="mb-6">
-                            <h2 className="text-xl font-bold text-gray-900">Bảng Giá Dịch Vụ</h2>
-                            <p className="text-gray-500 text-sm mt-1">Càng mua thời gian dài, chiết khấu càng sâu.</p>
+                            <h2 className="text-xl font-bold">Thông tin dịch vụ</h2>
+                            <p className="text-sm mt-1">Lựa chọn dữ liệu theo khoảng thời gian bạn mong muốn.</p>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            {/* Gói Cơ bản */}
-                            <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm relative">
-                                <h3 className="font-bold text-gray-800 mb-2">Mua lẻ (&lt; 1 Năm)</h3>
-                                <p className="text-3xl font-extrabold text-gray-900 mb-4">${basePrice.toLocaleString('en-US')}<span className="text-base text-gray-500 font-normal">/tháng</span></p>
-                                <ul className="space-y-3 text-sm text-gray-600">
-                                    <li className="flex gap-2"><CheckCircle2 size={16} className="text-gray-400"/> Áp dụng từ 1 - 11 tháng</li>
-                                    <li className="flex gap-2"><CheckCircle2 size={16} className="text-gray-400"/> Không áp dụng chiết khấu</li>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* Cột 1: Thông tin giá */}
+                            <div className="bg-[#111827] p-6 rounded-xl border border-slate-800 shadow-sm relative hover:border-slate-600 transition-colors">
+                                <h3 className="font-bold mb-2">Giá niêm yết (Base Price)</h3>
+                                <p className="text-4xl font-extrabold text-[#4ade80] mb-4">
+                                    ${basePrice.toLocaleString('en-US')}<span className="text-base font-normal opacity-70">/tháng</span>
+                                </p>
+                                <ul className="space-y-3 text-sm">
+                                    <li className="flex gap-2"><CheckCircle2 size={16} className="text-[#4ade80]"/> Tính linh hoạt theo số tháng đã chọn.</li>
+                                    <li className="flex gap-2"><CheckCircle2 size={16} className="text-[#4ade80]"/> Thanh toán trọn gói 1 lần khi duyệt đơn.</li>
                                 </ul>
                             </div>
 
-                            {/* Gói Giảm 20% */}
-                            <div className="bg-blue-50/50 p-6 rounded-xl border border-blue-200 shadow-sm relative transform md:-translate-y-2">
-                                <div className="absolute top-0 right-0 bg-blue-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg rounded-tr-xl uppercase">Phổ biến</div>
-                                <h3 className="font-bold text-blue-900 mb-2">Mua 1 - 2 Năm</h3>
-                                <div className="mb-4">
-                                    <span className="text-sm text-gray-400 line-through mr-2">${basePrice}</span>
-                                    <span className="text-3xl font-extrabold text-blue-600">${tier20Price.toLocaleString('en-US')}</span>
-                                    <span className="text-base text-gray-500 font-normal">/tháng</span>
+                            {/* Cột 2: Promo Highlight */}
+                            <div className="bg-[#0f172a] p-6 rounded-xl border border-blue-900/30 shadow-sm flex flex-col justify-center relative overflow-hidden">
+                                {/* Ánh sáng mờ ảo trang trí */}
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 blur-3xl rounded-full"></div>
+                                
+                                <div className="flex items-center gap-2 text-blue-400 font-bold mb-3 text-lg relative z-10">
+                                    <Tag className="text-blue-500" /> Ưu đãi đặc biệt
                                 </div>
-                                <ul className="space-y-3 text-sm text-gray-700">
-                                    <li className="flex gap-2"><CheckCircle2 size={16} className="text-blue-500"/> Áp dụng từ 12 - 24 tháng</li>
-                                    <li className="flex gap-2"><CheckCircle2 size={16} className="text-blue-500"/> <b className="text-blue-700">Giảm giá 20%</b> toàn hóa đơn</li>
-                                </ul>
-                            </div>
-
-                            {/* Gói Giảm 30% */}
-                            <div className="bg-gradient-to-b from-gray-900 to-gray-800 p-6 rounded-xl border border-gray-700 shadow-lg relative text-white">
-                                <div className="absolute top-0 right-0 bg-green-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg rounded-tr-xl uppercase">Tiết kiệm nhất</div>
-                                <h3 className="font-bold text-gray-100 mb-2">Mua Dài Hạn (&gt; 2 Năm)</h3>
-                                <div className="mb-4">
-                                    <span className="text-sm text-gray-400 line-through mr-2">${basePrice}</span>
-                                    <span className="text-3xl font-extrabold text-green-400">${tier30Price.toLocaleString('en-US')}</span>
-                                    <span className="text-base text-gray-300 font-normal">/tháng</span>
-                                </div>
-                                <ul className="space-y-3 text-sm text-gray-300">
-                                    <li className="flex gap-2"><CheckCircle2 size={16} className="text-green-400"/> Áp dụng từ 25 tháng trở lên</li>
-                                    <li className="flex gap-2"><CheckCircle2 size={16} className="text-green-400"/> <b className="text-green-400">Giảm giá 30%</b> toàn hóa đơn</li>
-                                </ul>
+                                <p className="text-sm mb-4 leading-relaxed relative z-10">
+                                    Bạn có mã giảm giá từ sự kiện hoặc đối tác? Đừng quên nhập mã khuyến mãi ở bước xác nhận cuối cùng (Confirm & Send) để hệ thống tự động giảm giá trực tiếp vào hóa đơn của bạn.
+                                </p>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-
             <Modal isOpen={isWizardOpen} onClose={() => setIsWizardOpen(false)} title="Yêu cầu truy cập dữ liệu" fitContent={true}>
                 {isWizardOpen && (
                     <RequestWizard 

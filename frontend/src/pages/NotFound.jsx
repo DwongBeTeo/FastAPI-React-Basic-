@@ -21,12 +21,12 @@ const NotFound = () => {
                 </p>
                 
                 <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
-                    <button
+                    {/* <button
                         onClick={() => navigate(-1)} // Go back to the previous page
                         className="inline-flex items-center justify-center gap-2 px-5 py-2.5 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors shadow-sm"
                     >
                         <ArrowLeft size={18} /> Go back
-                    </button>
+                    </button> */}
                     
                     <Link
                         to="/"

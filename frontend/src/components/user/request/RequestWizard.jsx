@@ -1,7 +1,10 @@
 // src/components/user/request/RequestWizard.jsx
 import React, { useState, useEffect } from 'react';
-import { ShoppingCart, Calendar, CheckCircle, ArrowRight, ArrowLeft, Trash2, Info, LoaderCircle } from 'lucide-react';
+import { ShoppingCart, Calendar, CheckCircle, ArrowRight, ArrowLeft, LoaderCircle } from 'lucide-react';
 import axiosConfig from '../../../utils/axiosConfig';
+import Step1SelectProduct from './steps/Step1SelectProduct';
+import Step2SelectMonth from './steps/Step2SelectMonth';
+import Step3Confirm from './steps/Step3Confirm';
 import { API_ENDPOINTS } from '../../../utils/apiEndPoint';
 
 const RequestWizard = ({ onSuccess, onCancel, initialProduct = null }) => {
@@ -13,8 +16,10 @@ const RequestWizard = ({ onSuccess, onCancel, initialProduct = null }) => {
     const [products, setProducts] = useState([]);
     const [pendingProductIds, setPendingProductIds] = useState(new Set());
     const [activeAccessMap, setActiveAccessMap] = useState(new Map());
+    
     const [cartItems, setCartItems] = useState([]);
     const [notes, setNotes] = useState('');
+    const [promotionCode, setPromotionCode] = useState('');
 
     useEffect(() => {
         const fetchWizardData = async () => {
@@ -49,34 +54,10 @@ const RequestWizard = ({ onSuccess, onCancel, initialProduct = null }) => {
                 setActiveAccessMap(aMap);
 
                 if (initialProduct && !pIds.has(initialProduct.id)) {
-                    const fullProduct = (prodRes || []).find(p => p.id === initialProduct.id) || initialProduct;
-                    
-                    let tiers = fullProduct.price_tiers;
-                    let basePrice = fullProduct.price;
-                    
-                    if (!tiers) {
-                        try {
-                            const detailRes = await axiosConfig.get(API_ENDPOINTS.USER.GET_PRODUCT_DETAIL(fullProduct.id));
-                            tiers = detailRes.price_tiers;
-                            basePrice = detailRes.price;
-                        } catch(e) { console.error(e); }
-                    }
-
-                    setCartItems([{
-                        product_id: fullProduct.id,
-                        product_name: fullProduct.name,
-                        product_code: fullProduct.code,
-                        available_from: fullProduct.available_from,
-                        available_to: fullProduct.available_to,
-                        base_price: basePrice || 0,
-                        price_tiers: tiers || [],
-                        access_type: 'READ',
-                        from_date: '',
-                        to_date: ''    
-                    }]);
+                    const fullProduct = activeProductsOnly.find(p => p.id === initialProduct.id) || initialProduct;
+                    handleAddToCart(fullProduct, true);
                     setStep(2);
                 }
-
             } catch (err) {
                 console.error("Lỗi tải dữ liệu Wizard:", err);
                 setError("Cannot load data. Please try again.");
@@ -86,43 +67,41 @@ const RequestWizard = ({ onSuccess, onCancel, initialProduct = null }) => {
         };
 
         fetchWizardData();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [initialProduct]);
 
-    // --- HÀM TÍNH TOÁN ---
     const calculateMonths = (startDate, endDate) => {
         if (!startDate || !endDate) return 0; 
         const start = new Date(`${startDate}-01`);
         const end = new Date(`${endDate}-01`);
-        
         if (isNaN(start.getTime()) || isNaN(end.getTime())) return 0;
-        
         return (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()) + 1;
     };
 
-    const getEstimatedPrice = (item) => {
-        const months = calculateMonths(item.from_date, item.to_date);
-        if (months <= 0) return 0;
-
+    // TÍNH TOÁN GIÁ RIÊNG BIỆT CHO 2 GÓI
+    const getSubItemPrice = (item, type) => {
         const basePrice = item.base_price ? Number(item.base_price) : 0;
-        const totalBase = basePrice * months;
-
-        // Áp dụng khuyến mãi giống hệt Backend
-        if (months >= 12 && months <= 24) {
-            return Math.floor(totalBase * 0.8); // Discount 20%
-        } else if (months > 24) {
-            return Math.floor(totalBase * 0.7); // Discount 30%
+        
+        if (type === 'HISTORICAL' && item.historical_selected) {
+            const months = calculateMonths(item.historical_from, item.historical_to);
+            if (months <= 0) return 0;
+            let totalBase = basePrice * months;
+            return totalBase;
+        } 
+        
+        if (type === 'ONGOING' && item.ongoing_selected) {
+            return basePrice; // Đặt cọc 1 tháng
         }
-
-        return totalBase; //Under 12months price base
+        
+        return 0;
     };
 
-    const handleAddToCart = (product) => {
-        if (cartItems.some(i => i.product_id === product.id)) return;
-
-        // Không cần fetch price_tiers nữa, chỉ lưu giá gốc
+    const handleAddToCart = (product, isInitial = false) => {
+        if (!isInitial && cartItems.some(i => i.product_id === product.id)) return;
         const basePrice = product.price || 0;
 
-        setCartItems([...cartItems, {
+        // Cấu trúc State mới hỗ trợ cả 2 loại Data
+        const newItem = {
             product_id: product.id,
             product_name: product.name,
             product_code: product.code,
@@ -130,9 +109,21 @@ const RequestWizard = ({ onSuccess, onCancel, initialProduct = null }) => {
             available_to: product.available_to,
             base_price: basePrice,
             access_type: 'READ',
-            from_date: '',
-            to_date: ''
-        }]);
+            
+            historical_selected: true,
+            historical_from: '',
+            historical_to: '',
+            
+            ongoing_selected: false,
+            ongoing_from: '',
+            ongoin_to: '',
+        };
+
+        if (isInitial) {
+            setCartItems([newItem]);
+        } else {
+            setCartItems([...cartItems, newItem]);
+        }
     };
 
     const handleRemoveFromCart = (productId) => {
@@ -145,32 +136,74 @@ const RequestWizard = ({ onSuccess, onCancel, initialProduct = null }) => {
         setCartItems(newCart);
     };
 
+    // VALIDATE BƯỚC 2
     const isStep2Valid = cartItems.length > 0 && cartItems.every(item => {
-        if (!item.from_date || !item.to_date) return false;
-        if (item.from_date > item.to_date) return false;
-        
-        // So sánh chuỗi YYYY-MM
+        if (!item.historical_selected && !item.ongoing_selected) return false;
+
         const availFromStr = item.available_from ? item.available_from.substring(0, 7) : null;
         const availToStr = item.available_to ? item.available_to.substring(0, 7) : null;
         
-        if (availFromStr && item.from_date < availFromStr) return false;
-        if (availToStr && item.to_date > availToStr) return false;
+        // --- THÊM LOGIC LẤY THÁNG TIẾP THEO THEO ĐỊNH DẠNG YYYY-MM ---
+        const today = new Date();
+        const nextMonthDate = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+        const nextMonthStr = `${nextMonthDate.getFullYear()}-${String(nextMonthDate.getMonth() + 1).padStart(2, '0')}`;
+
+        if (item.historical_selected) {
+            if (!item.historical_from || !item.historical_to) return false;
+            if (item.historical_from > item.historical_to) return false;
+            if (availFromStr && item.historical_from < availFromStr) return false;
+            if (availToStr && item.historical_to > availToStr) return false;
+        }
+
+        if (item.ongoing_selected) {
+            if (!item.ongoing_from) return false;
+            if (availFromStr && item.ongoing_from < availFromStr) return false;
+            if (availToStr && item.ongoing_from > availToStr) return false;
+            
+            // --- THÊM CHẶN: ONGOING PHẢI TỪ THÁNG TIẾP THEO ---
+            if (item.ongoing_from < nextMonthStr) return false;
+
+            if (item.ongoing_to) {
+                if (item.ongoing_to < item.ongoing_from) return false;
+                if (availToStr && item.ongoing_to > availToStr) return false;
+            }
+        }
         return true;
     });
 
     const handleSubmit = async () => {
         setIsSubmitting(true);
         setError('');
+        
         try {
+            // Tách 1 item giỏ hàng thành 1 hoặc 2 request_items gửi lên Backend
+            const flatItems = [];
+            cartItems.forEach(item => {
+                if (item.historical_selected) {
+                    flatItems.push({
+                        product_id: item.product_id,
+                        access_type: item.access_type,
+                        subscription_type: "HISTORICAL",
+                        from_date: `${item.historical_from}-01`,
+                        to_date: `${item.historical_to}-01`
+                    });
+                }
+                if (item.ongoing_selected) {
+                    flatItems.push({
+                        product_id: item.product_id,
+                        access_type: item.access_type,
+                        subscription_type: "ONGOING",
+                        from_date: `${item.ongoing_from}-01`,
+                        to_date: item.ongoing_to ? `${item.ongoing_to}-01` : null
+                    });
+                }
+            });
+
             const payload = {
                 reference_code: "",
                 notes: notes,
-                items: cartItems.map(item => ({
-                    product_id: item.product_id,
-                    access_type: item.access_type,
-                    from_date: `${item.from_date}-01`,
-                    to_date: `${item.to_date}-01`
-                }))
+                promotion_code: promotionCode.trim() !== '' ? promotionCode.trim().toUpperCase() : null,
+                items: flatItems
             };
 
             await axiosConfig.post(API_ENDPOINTS.USER_REQUEST.CREATE, payload);
@@ -182,238 +215,106 @@ const RequestWizard = ({ onSuccess, onCancel, initialProduct = null }) => {
         }
     };
 
-    if (isLoading) return <div className="py-20 flex justify-center text-gray-500"><LoaderCircle className="animate-spin w-8 h-8" /></div>;
+    if (isLoading) return <div className="py-20 flex justify-center text-[#4ade80]"><LoaderCircle className="animate-spin w-8 h-8" /></div>;
+
+    const steps = [
+        { num: 1, label: 'Configure' },
+        { num: 2, label: 'Review' },
+        { num: 3, label: 'Finish' }
+    ];
 
     return (
-        <div className="flex flex-col h-[75vh] bg-white">
+        <div className="flex flex-col h-[80vh] bg-transparent">
             {/* STEPPER */}
-            <div className="flex justify-between items-center p-6 border-b border-gray-100 bg-gray-50 shrink-0">
-                {[
-                    { num: 1, label: 'Select product', icon: ShoppingCart },
-                    { num: 2, label: 'Select month', icon: Calendar },
-                    { num: 3, label: 'Confirm & send', icon: CheckCircle }
-                ].map((s) => (
-                    <div key={s.num} className={`flex items-center gap-2 ${step >= s.num ? 'text-blue-600' : 'text-gray-400'}`}>
-                        <div className={`w-8 h-8 flex items-center justify-center rounded-full border-2 font-bold ${step >= s.num ? 'border-blue-600 bg-blue-50' : 'border-gray-300'}`}>
-                            {s.num}
-                        </div>
-                        <span className="text-sm font-semibold hidden md:block">{s.label}</span>
-                    </div>
-                ))}
+            <div className="flex items-center justify-center p-6 border-b border-slate-800 shrink-0">
+                <div className="flex items-center gap-4">
+                    {steps.map((s, idx) => (
+                        <React.Fragment key={s.num}>
+                            <div className="flex items-center gap-2">
+                                <div className={`w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold transition-colors ${
+                                    step >= s.num ? 'bg-[#4ade80] text-slate-900' : 'bg-transparent border border-slate-600 text-slate-500'
+                                }`}>
+                                    {s.num}
+                                </div>
+                                <span className={`text-sm font-semibold hidden md:block ${step >= s.num ? 'text-[#4ade80]' : 'text-slate-500'}`}>
+                                    {s.label}
+                                </span>
+                            </div>
+                            {idx < steps.length - 1 && (
+                                <div className={`w-12 h-px ${step > s.num ? 'bg-[#4ade80]' : 'bg-slate-700'}`}></div>
+                            )}
+                        </React.Fragment>
+                    ))}
+                </div>
             </div>
 
             {error && (
-                <div className="mx-6 mt-4 p-3 bg-red-50 text-red-600 rounded-lg text-sm border border-red-100">
-                    <span className="font-bold mr-2">Error:</span>{error}
+                <div className="mx-6 mt-4 p-3 bg-red-900/30 text-red-400 rounded-lg text-sm border border-red-800">
+                    <span className="font-bold mr-2">Error:</span> {error}
                 </div>
             )}
 
             <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
-                
-                {/* STEP 1 */}
                 {step === 1 && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {products.map(product => {
-                            const isPending = pendingProductIds.has(product.id);
-                            const activeAcc = activeAccessMap.get(product.id);
-                            const inCart = cartItems.some(i => i.product_id === product.id);
-
-                            return (
-                                <div key={product.id} className={`p-4 rounded-xl border ${inCart ? 'border-blue-500 bg-blue-50/30' : 'border-gray-200'} transition-all flex flex-col justify-between`}>
-                                    <div>
-                                        <div className="flex justify-between items-start mb-2">
-                                            <div>
-                                                <p className="text-xs font-mono text-gray-400">{product.code}</p>
-                                                <h3 className="font-bold text-gray-900">{product.name}</h3>
-                                            </div>
-                                            <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-1 rounded">
-                                                Starts from ${product.price?.toLocaleString('en-US') || 0}
-                                            </span>
-                                        </div>
-
-                                        {(product.available_from || product.available_to) && (
-                                            <p className="text-xs text-gray-500 mb-2">
-                                                Data range: {product.available_from ? product.available_from.substring(0, 7) : 'Any'} ➔ {product.available_to ? product.available_to.substring(0, 7) : 'Now'}
-                                            </p>
-                                        )}
-
-                                        {activeAcc && (
-                                            <div className="mb-2 text-[11px] text-green-700 bg-green-100 px-2 py-1 rounded flex items-center gap-1">
-                                                <Info size={12}/> Access granted: {new Date(activeAcc.expires_at).toLocaleDateString()}
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {isPending ? (
-                                        <div className="mt-4 w-full text-center py-2 bg-gray-100 text-gray-400 text-sm font-medium rounded-lg cursor-not-allowed">
-                                            Pending
-                                        </div>
-                                    ) : (
-                                        <button 
-                                            onClick={() => inCart ? handleRemoveFromCart(product.id) : handleAddToCart(product)}
-                                            className={`mt-4 w-full py-2 rounded-lg text-sm font-medium transition-colors ${
-                                                inCart ? 'bg-red-50 text-red-600 hover:bg-red-100' : 'bg-blue-600 text-white hover:bg-blue-700'
-                                            }`}
-                                        >
-                                            {inCart ? 'Cancel' : 'Select'}
-                                        </button>
-                                    )}
-                                </div>
-                            );
-                        })}
-                    </div>
+                    <Step1SelectProduct 
+                        products={products}
+                        pendingProductIds={pendingProductIds}
+                        activeAccessMap={activeAccessMap}
+                        cartItems={cartItems}
+                        handleAddToCart={handleAddToCart}
+                        handleRemoveFromCart={handleRemoveFromCart}
+                    />
                 )}
-
-                {/* STEP 2 */}
                 {step === 2 && (
-                    <div className="space-y-4">
-                        <p className="text-sm text-gray-500 mb-2">Please select the month period for which you want to access data:</p>
-                        
-                        {cartItems.map((item, index) => {
-                            // Cắt YYYY-MM-DD thành YYYY-MM để truyền vào min/max của thẻ input
-                            const minMonth = item.available_from ? item.available_from.substring(0, 7) : undefined;
-                            const maxMonth = item.available_to ? item.available_to.substring(0, 7) : undefined;
-
-                            return (
-                            <div key={item.product_id} className="p-5 border border-gray-200 rounded-xl bg-gray-50 relative">
-                                <div className="flex justify-between items-center mb-3">
-                                    <h4 className="font-bold text-gray-900">{item.product_code} - {item.product_name}</h4>
-                                    <button 
-                                        onClick={() => handleRemoveFromCart(item.product_id)}
-                                        className="text-red-500 hover:bg-red-100 p-1.5 rounded-lg transition-colors"
-                                        title="Remove product"
-                                    >
-                                        <Trash2 size={16}/>
-                                    </button>
-                                </div>
-
-                                {minMonth || maxMonth ? (
-                                    <p className="text-xs text-amber-600 bg-amber-50 p-2 rounded mb-3 border border-amber-100">
-                                        * Note: This product only allows selection from <b>{minMonth || 'system start'}</b> to <b>{maxMonth || 'now'}</b>.
-                                    </p>
-                                ) : null}
-
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                    <div>
-                                        <label className="block text-xs font-semibold text-gray-600 mb-1">Type</label>
-                                        <select 
-                                            value={item.access_type}
-                                            onChange={(e) => handleUpdateConfig(index, 'access_type', e.target.value)}
-                                            className="w-full p-2 border border-gray-300 rounded-lg outline-none bg-white text-sm"
-                                        >
-                                            <option value="READ">READ</option>
-                                            <option value="WRITE">WRITE</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-semibold text-gray-600 mb-1">From Month</label>
-                                        <input 
-                                            type="month" 
-                                            value={item.from_date}
-                                            min={minMonth}
-                                            max={maxMonth}
-                                            onChange={(e) => handleUpdateConfig(index, 'from_date', e.target.value)}
-                                            className="w-full p-2 border border-gray-300 rounded-lg outline-none bg-white text-sm"
-                                            required
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-semibold text-gray-600 mb-1">To Month</label>
-                                        <input 
-                                            type="month" 
-                                            value={item.to_date}
-                                            min={item.from_date || minMonth}
-                                            max={maxMonth}
-                                            onChange={(e) => handleUpdateConfig(index, 'to_date', e.target.value)}
-                                            className="w-full p-2 border border-gray-300 rounded-lg outline-none bg-white text-sm"
-                                            required
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="mt-4 pt-3 border-t border-gray-200 flex justify-between items-center bg-blue-50/30 px-4 py-3 rounded-lg border border-blue-100">
-                                    <span className="text-sm font-medium text-gray-600">
-                                        Estimated Time: <b className="text-blue-600">{calculateMonths(item.from_date, item.to_date)} months</b>
-                                    </span>
-                                    <span className="text-sm font-medium text-gray-600">
-                                        Est. Price: <b className="text-xl text-green-600">${getEstimatedPrice(item).toLocaleString('en-US')}</b>
-                                    </span>
-                                </div>
-                            </div>
-                        )})}
-                    </div>
+                    <Step2SelectMonth 
+                        cartItems={cartItems}
+                        handleRemoveFromCart={handleRemoveFromCart}
+                        handleUpdateConfig={handleUpdateConfig}
+                        getSubItemPrice={getSubItemPrice}
+                    />
                 )}
-
-                {/* STEP 3 */}
                 {step === 3 && (
-                    <div className="space-y-6">
-                        <div className="bg-white border rounded-xl overflow-hidden shadow-sm">
-                            <table className="w-full text-sm text-left">
-                                <thead className="bg-gray-50 border-b text-gray-500 uppercase text-xs">
-                                    <tr>
-                                        <th className="px-4 py-3">Product</th>
-                                        <th className="px-4 py-3 text-center">Type</th>
-                                        <th className="px-4 py-3 text-right">Access time</th>
-                                        <th className="px-4 py-3 text-right">Est. Price</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-100">
-                                    {cartItems.map(item => (
-                                        <tr key={item.product_id}>
-                                            <td className="px-4 py-3 font-medium text-gray-900">{item.product_name}</td>
-                                            <td className="px-4 py-3 text-center"><span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs font-bold">{item.access_type}</span></td>
-                                            <td className="px-4 py-3 text-gray-600 font-mono text-right">{item.from_date} ➔ {item.to_date}</td>
-                                            <td className="px-4 py-3 font-bold text-green-600 text-right">${getEstimatedPrice(item).toLocaleString('en-US')}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-bold text-gray-700 mb-2">Note (Optional)</label>
-                            <textarea 
-                                value={notes}
-                                onChange={(e) => setNotes(e.target.value)}
-                                rows="3"
-                                placeholder="Write a note to admin..."
-                                className="w-full p-3 border border-gray-300 rounded-xl outline-none focus:border-blue-500 text-sm"
-                            />
-                        </div>
-                    </div>
+                    <Step3Confirm 
+                        cartItems={cartItems}
+                        notes={notes}
+                        setNotes={setNotes}
+                        promotionCode={promotionCode}
+                        setPromotionCode={setPromotionCode}
+                        getSubItemPrice={getSubItemPrice}
+                    />
                 )}
             </div>
 
-            {/* BUTTONS */}
-            <div className="p-5 border-t border-gray-100 bg-gray-50 flex justify-between items-center shrink-0">
+            {/* BUTTONS ĐÁY */}
+            <div className="p-6 border-t border-slate-800 flex justify-between items-center shrink-0">
                 <button 
                     onClick={step === 1 ? onCancel : () => setStep(step - 1)}
-                    className="px-5 py-2.5 text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 font-medium flex items-center gap-2 text-sm transition-colors"
+                    className="px-6 py-2.5 text-slate-300 bg-transparent border border-slate-700 rounded-lg hover:bg-slate-800 font-medium text-sm transition-colors"
                 >
-                    {step === 1 ? 'Cancel' : <><ArrowLeft size={16}/>Back</>}
+                    {step === 1 ? 'Cancel' : 'Back'}
                 </button>
 
                 {step < 3 ? (
                     <button 
                         onClick={() => {
                             if (step === 1 && cartItems.length === 0) return setError("Please select at least one product.");
-                            if (step === 2 && !isStep2Valid) return setError("Please select valid month range for all products.");
+                            if (step === 2 && !isStep2Valid) return setError("Please configure valid dates for selected subscriptions.");
                             setError('');
                             setStep(step + 1);
                         }}
                         disabled={step === 1 && cartItems.length === 0}
-                        className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium flex items-center gap-2 shadow-sm text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        className="px-8 py-2.5 bg-[#3b82f6] text-white rounded-lg hover:bg-blue-600 font-bold shadow-lg shadow-blue-900/20 text-sm disabled:opacity-50 transition-colors"
                     >
-                        Continue <ArrowRight size={16}/>
+                        Continue
                     </button>
                 ) : (
                     <button 
                         onClick={handleSubmit}
                         disabled={isSubmitting}
-                        className="px-6 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium flex items-center gap-2 shadow-sm text-sm disabled:opacity-70 transition-colors"
+                        className="px-8 py-2.5 bg-[#4ade80] text-slate-900 rounded-lg hover:bg-[#22c55e] font-bold shadow-lg shadow-green-900/20 text-sm disabled:opacity-70 flex items-center gap-2 transition-colors"
                     >
-                        {isSubmitting ? <LoaderCircle className="animate-spin w-4 h-4"/> : <CheckCircle size={16}/>}
-                        Send Request
+                        {isSubmitting && <LoaderCircle className="animate-spin w-4 h-4"/>}
+                        Submit Request
                     </button>
                 )}
             </div>

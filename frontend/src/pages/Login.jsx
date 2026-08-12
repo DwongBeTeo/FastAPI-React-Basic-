@@ -9,7 +9,7 @@ import { API_ENDPOINTS } from '../utils/apiEndPoint';
 import { LoaderCircle } from "lucide-react";
 
 const Login = () => {
-    const [username, setUsername] = useState('');
+    const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [errorMsg, setErrorMsg] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -24,7 +24,7 @@ const Login = () => {
 
         try {
             const formData = new URLSearchParams();
-            formData.append('username', username);
+            formData.append('username', email);
             formData.append('password', password);
 
             // Call API
@@ -51,7 +51,7 @@ const Login = () => {
 
         } catch (error) {
             if (error.response && error.response.status === 401) {
-                setErrorMsg('Password or username is incorrect!');
+                setErrorMsg('Password or email is incorrect!');
             } else {
                 setErrorMsg('Can not connect to server. Please  try again.');
             }
@@ -74,15 +74,15 @@ const Login = () => {
                 <form className="space-y-4" onSubmit={handleLogin}>
                     <div>
                         <label className="block mb-1 text-sm font-medium text-gray-700">
-                            User (Username)
+                            Email (Email)
                         </label>
                         <input
                             type="text"
                             required
                             className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            placeholder="Your username"
-                            value={username}
-                            onChange={(e) => setUsername(e.target.value)}
+                            placeholder="Your Email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
                         />
                     </div>
 

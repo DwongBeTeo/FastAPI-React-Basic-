@@ -1,132 +1,199 @@
-# services/request_service.py
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 import models, schemas
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
+from models.promotion import DiscountTypeEnum
+from schemas.data_access import SubscriptionTypeEnum
 import calendar
 
-from repositories import product_repository, request_repository, access_repository
+from repositories import product_repository, request_repository, access_repository, promotion_repository
 
-def generate_reference_code(db: Session) -> str:
-    """Auto-generate sequential reference code (e.g., REQ-20260806-0001)"""
-    date_str = datetime.now().strftime("%Y%m%d")
-    prefix = f"REQ-{date_str}-"
-    
-    last_request = request_repository.get_last_request_by_prefix(db, prefix)
-    
-    if last_request:
-        last_sequence = int(last_request.reference_code.split("-")[-1])
-        new_sequence = last_sequence + 1
-    else:
-        new_sequence = 1
-        
-    return f"{prefix}{new_sequence:04d}"
+# services/request_service.py
+# ==========================================
+# 1. UTILITY FUNCTIONS (HÀM TIỆN ÍCH DÙNG CHUNG)
+# ==========================================
+def get_start_of_next_month(d: date) -> date:
+    """Lấy ngày đầu tiên của tháng tiếp theo"""
+    if d.month == 12:
+        return d.replace(year=d.year + 1, month=1, day=1)
+    return d.replace(month=d.month + 1, day=1)
 
-# USER OPERATIONS
-def calculate_months(start_date, end_date):
+def calculate_months(start_date: date, end_date: date) -> int:
     """Tính tổng số tháng giữa 2 mốc thời gian"""
     return (end_date.year - start_date.year) * 12 + (end_date.month - start_date.month) + 1
 
-# USER OPERATIONS
+def get_start_of_month(d: date) -> date:
+    """Lấy ngày đầu tiên của tháng"""
+    return d.replace(day=1)
+
+def get_end_of_month(d: date) -> date:
+    """Lấy ngày cuối cùng của tháng"""
+    return d.replace(day=calendar.monthrange(d.year, d.month)[1])
+
+def generate_reference_code(db: Session) -> str:
+    """Tạo mã hóa đơn tự động"""
+    date_str = datetime.now().strftime("%Y%m%d")
+    prefix = f"REQ-{date_str}-"
+    last_request = request_repository.get_last_request_by_prefix(db, prefix)
+    
+    new_sequence = int(last_request.reference_code.split("-")[-1]) + 1 if last_request else 1
+    return f"{prefix}{new_sequence:04d}"
+
+
+# ==========================================
+# 2. BUSINESS LOGIC HELPERS (HÀM XỬ LÝ NGHIỆP VỤ)
+# ==========================================
+def _validate_and_get_promotion(db: Session, promotion_code: str, current_date: date):
+    """Kiểm tra mã giảm giá và trả về cấu hình giảm giá"""
+    if not promotion_code:
+        return None, None, 0.0
+
+    promotion = promotion_repository.get_promotion_by_code(db, promotion_code)
+    if not promotion or not promotion.is_active:
+        raise HTTPException(status_code=400, detail="Promotion code does not exist or is inactive.")
+    if promotion.expiration_date and promotion.expiration_date < current_date:
+        raise HTTPException(status_code=400, detail="Promotion code has expired.")
+        
+    return promotion.id, promotion.discount_type, promotion.discount_value
+
+
+def _process_request_item(
+    db: Session, 
+    item: schemas.DataRequestItemCreate, 
+    user_id: int, 
+    current_date: date, 
+    discount_type: DiscountTypeEnum, 
+    discount_value: float
+):
+    """Xử lý validate logic và tính tiền cho từng Item lẻ"""
+    product = product_repository.get_product_by_id(db, item.product_id)
+    if not product:
+        raise HTTPException(status_code=404, detail=f"Product ID {item.product_id} not found.")
+
+    current_month_start = get_start_of_month(current_date)
+    current_month_end = get_end_of_month(current_date)
+    
+    # THÊM MỚI: Tính ngày mùng 1 của tháng tiếp theo
+    next_month_start = get_start_of_next_month(current_date) 
+    
+    std_from_date = get_start_of_month(item.from_date)
+    std_avail_from = get_start_of_month(product.available_from) if product.available_from else None
+
+    # LƯỚI LỌC CHUNG
+    if std_avail_from and std_from_date < std_avail_from:
+        raise HTTPException(status_code=400, detail=f"Product '{product.name}' data is only available from {std_avail_from.strftime('%m/%Y')}.")
+
+    std_to_date = None
+    total_months = 0
+
+    # =========================================================
+    # LƯỚI LỌC 1: HISTORICAL DATA (Giữ nguyên)
+    # =========================================================
+    if item.subscription_type == SubscriptionTypeEnum.HISTORICAL:
+        if not item.to_date:
+            raise HTTPException(status_code=400, detail=f"Historical data for '{product.name}' requires a 'to_date'.")
+        if std_from_date > current_month_start:
+            raise HTTPException(status_code=400, detail=f"Historical data for '{product.name}' cannot start after {current_month_start.strftime('%m/%Y')}.")
+
+        std_to_date = get_end_of_month(item.to_date)
+        
+        if std_to_date < std_from_date:
+            raise HTTPException(status_code=400, detail="The 'to_date' cannot be earlier than the 'from_date'.")
+        if std_to_date > current_month_end:
+            raise HTTPException(status_code=400, detail=f"Historical data for '{product.name}' can only end at or before {current_month_end.strftime('%m/%Y')}.")
+
+        if product.available_to:
+            std_avail_to = get_end_of_month(product.available_to)
+            if std_to_date > std_avail_to:
+                raise HTTPException(status_code=400, detail=f"Historical data for '{product.name}' is only available until {std_avail_to.strftime('%m/%Y')}.")
+                
+        total_months = calculate_months(std_from_date, std_to_date)
+
+    # =========================================================
+    # LƯỚI LỌC 2: ONGOING SUBSCRIPTION (Sửa lại logic chặn)
+    # =========================================================
+    elif item.subscription_type == SubscriptionTypeEnum.ONGOING:
+        if product.available_to and std_from_date > product.available_to:
+            raise HTTPException(status_code=400, detail=f"Product '{product.name}' is no longer updating. Cannot create Ongoing Subscription.")
+            
+        # SỬA Ở ĐÂY: Dùng next_month_start làm ranh giới tuyệt đối
+        if std_from_date < next_month_start:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Ongoing subscription for '{product.name}' must start from the next month ({next_month_start.strftime('%m/%Y')}) or later."
+            )
+
+        std_to_date = None 
+        total_months = 1
+
+    # CHỐNG TRÙNG LẶP
+    if request_repository.get_pending_request_item(db, user_id, item.product_id):
+        raise HTTPException(status_code=400, detail=f"A pending request for Product ID {item.product_id} already exists.")
+    if request_repository.get_overlapping_approved_item(db, user_id, item.product_id, std_from_date, std_to_date):
+        raise HTTPException(status_code=400, detail=f"Product ID {item.product_id} overlaps with an already approved access period.")
+
+    # TÍNH TOÁN GIÁ TIỀN
+    base_price = product.price * total_months
+    applied_price = base_price
+    
+    if discount_type == DiscountTypeEnum.PERCENTAGE:
+        applied_price = int(base_price * (1 - discount_value / 100.0))
+
+    # TẠO MODEL ITEM
+    item_model = models.DataRequestItem(
+        product_id=item.product_id,
+        access_type=item.access_type,
+        subscription_type=item.subscription_type,
+        from_date=std_from_date,
+        to_date=std_to_date,
+        calculated_months=total_months,
+        applied_price=applied_price
+    )
+    return item_model, applied_price
+
+
+# ==========================================
+# 3. MAIN FUNCTION (HÀM ĐIỀU PHỐI CHÍNH)
+# ==========================================
 def create_request(db: Session, request_data: schemas.DataRequestCreate, user_id: int):
     try:
-        # --- PREPARE DATA LISTS ---
+        current_date = datetime.now().date()
+        
+        # 1. Xác thực và cấu hình mã giảm giá
+        promo_id, discount_type, discount_value = _validate_and_get_promotion(
+            db, request_data.promotion_code, current_date
+        )
+
         new_items = []
         total_request_price = 0
 
-        # --- BUSINESS LOGIC VALIDATION ---
+        # 2. Xử lý logic và tính tiền cho từng sản phẩm
         for item in request_data.items:
-            product = product_repository.get_product_by_id(db, item.product_id)
-            if not product:
-                raise HTTPException(status_code=404, detail=f"Product ID {item.product_id} not found.")
-
-            # 1. CHUẨN HÓA NGÀY THÁNG KHÁCH HÀNG GỬI LÊN
-            std_from_date = item.from_date.replace(day=1)
-            last_day = calendar.monthrange(item.to_date.year, item.to_date.month)[1]
-            std_to_date = item.to_date.replace(day=last_day)
-
-            # 2. CHUẨN HÓA NGÀY THÁNG CỦA SẢN PHẨM TRONG DB
-            std_avail_from = product.available_from.replace(day=1) if product.available_from else None
-            
-            std_avail_to = None
-            if product.available_to:
-                avail_last_day = calendar.monthrange(product.available_to.year, product.available_to.month)[1]
-                std_avail_to = product.available_to.replace(day=avail_last_day)
-
-
-            # 3. KIỂM TRA LOGIC THỜI GIAN (Rất đơn giản)
-            # Ranh giới dưới: Không được mua trước ngày data ra mắt
-            if std_avail_from and std_from_date < std_avail_from:
-                raise HTTPException(
-                    status_code=400, 
-                    detail=f"Product '{product.name}' data is only available from {std_avail_from.strftime('%m/%Y')}."
-                )
-
-            # Ranh giới trên: Không được mua vượt quá ngày data đóng cửa (nếu có)
-            # Nếu std_avail_to là None -> Cho phép mua vô hạn tới tương lai
-            if std_avail_to and std_to_date > std_avail_to:
-                raise HTTPException(
-                    status_code=400, 
-                    detail=f"Product '{product.name}' data is only available until {std_avail_to.strftime('%m/%Y')}."
-                )
-
-            # 4. CHỐNG TRÙNG LẶP
-            pending_item = request_repository.get_pending_request_item(db, user_id, item.product_id)
-            if pending_item:
-                raise HTTPException(
-                    status_code=400, 
-                    detail=f"A pending request for Product ID {item.product_id} already exists."
-                )
-
-            overlapping_item = request_repository.get_overlapping_approved_item(
-                db, user_id, item.product_id, std_from_date, std_to_date
+            item_model, item_price = _process_request_item(
+                db=db, 
+                item=item, 
+                user_id=user_id, 
+                current_date=current_date, 
+                discount_type=discount_type, 
+                discount_value=discount_value
             )
-            if overlapping_item:
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"Product ID {item.product_id} overlaps with an already approved access period."
-                )
+            new_items.append(item_model)
+            total_request_price += item_price
 
-            # 5. TÍNH TOÁN GIÁ TIỀN (Sử dụng trực tiếp giá của Product)
-            total_months = calculate_months(std_from_date, std_to_date)
-            
-            # Tính giá gốc (Base Price)
-            base_price = product.price * total_months
-            applied_price = base_price
-            
-            # Logic áp dụng Promotion
-            if 12 <= total_months <= 24:
-                # Mua từ 1 - 2 năm: Giảm giá 20%
-                discount_rate = 0.20
-                applied_price = int(base_price * (1 - discount_rate))
-                
-            elif total_months > 24:
-                # Tùy chọn mở rộng: Mua trên 2 năm thì giảm 30% 
-                discount_rate = 0.30
-                applied_price = int(base_price * (1 - discount_rate))
+        # 3. Trừ tiền nếu dùng mã giảm giá cố định (FIXED) trên tổng hóa đơn
+        if discount_type == DiscountTypeEnum.FIXED:
+            total_request_price = max(0, total_request_price - int(discount_value))
 
-            total_request_price += applied_price
-            
-            new_items.append(
-                models.DataRequestItem(
-                    product_id=item.product_id,
-                    access_type=item.access_type,
-                    from_date=std_from_date,
-                    to_date=std_to_date,
-                    calculated_months=total_months,
-                    applied_price=applied_price
-                )
-            )
-
-        # --- PREPARE DATA MODELS ---
+        # 4. Tạo Object Hóa đơn tổng
         new_request = models.DataRequest(
             reference_code=generate_reference_code(db),
             user_id=user_id,
             status="PENDING",
-            total_amount=total_request_price
+            total_amount=total_request_price,
+            promotion_id=promo_id  
         )
         
-        # --- CALL REPOSITORY ---
+        # 5. Lưu vào Database (Transaction)
         created_request = request_repository.create_request_with_items(db, new_request, new_items)
         db.commit()
         db.refresh(created_request)

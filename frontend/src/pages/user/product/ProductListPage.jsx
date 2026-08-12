@@ -1,6 +1,6 @@
 // src/pages/user/product/ProductListPage.jsx
 import React, { useState, useEffect } from 'react';
-import { Search } from 'lucide-react';
+import { LoaderCircle, Search } from 'lucide-react';
 import axiosConfig from '../../../utils/axiosConfig';
 import ProductCard from '../../../components/user/product/ProductCard'
 import { API_ENDPOINTS } from '../../../utils/apiEndPoint';
@@ -25,9 +25,14 @@ const ProductListPage = () => {
         const fetchProducts = async () => {
             try {
                 setLoading(true);
-                // ?skip=0&limit=100
                 const response = await axiosConfig.get(`${API_ENDPOINTS.USER.GET_AVAILABLE_PRODUCTS}?skip=0&limit=100`);
-                setProducts(response || []);
+                let fetchedProducts = response || [];
+                
+                // Sort theo ID giảm dần (Sản phẩm tạo sau có ID lớn hơn sẽ lên đầu)
+                fetchedProducts.sort((a, b) => b.id - a.id);
+                
+                setProducts(fetchedProducts);
+                // setProducts(response || []);
             } catch (error) {
                 console.error("Error loading products:", error);
             } finally {
@@ -44,7 +49,6 @@ const ProductListPage = () => {
     };
 
     const handleBuyClick = (product) => {
-        // Check login (UX Protection)
         if (!localStorage.getItem('token')) {
             alert("You need to log in to send a request!");
             navigate('/login');
@@ -71,38 +75,39 @@ const ProductListPage = () => {
     });
 
     return (
-        <div className="bg-gray-50 min-h-screen pb-12 pt-6">
+        // Đổi màu nền chính sang Dark Theme
+        <div className="bg-[#0B1121] min-h-screen pb-12 pt-8">
             <div className="max-w-[1440px] mx-auto px-5 md:px-10 lg:px-20 flex flex-col md:flex-row gap-8">
                 
                 {/* --- Left column: Filter (SIDEBAR) --- */}
                 <div className="w-full md:w-64 shrink-0">
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 sticky top-24">
-                        <h2 className="text-xl font-bold text-gray-900 mb-6">Filters</h2>
+                    <div className="bg-[#111827] rounded-xl shadow-lg border border-slate-800 p-5 sticky top-24">
+                        <h2 className="text-xl font-bold text-white mb-6">Filters</h2>
 
                         {/* Search */}
                         <div className="mb-5">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Search</label>
+                            <label className="block text-sm font-medium text-slate-400 mb-2">Search</label>
                             <div className="relative">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4" />
                                 <input 
                                     type="text" 
                                     name="search"
                                     value={filters.search}
                                     onChange={handleFilterChange}
-                                    placeholder="Enter name or product code..." 
-                                    className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-1 focus:ring-blue-500 outline-none"
+                                    placeholder="Enter name or code..." 
+                                    className="w-full pl-9 pr-3 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white placeholder-slate-500 focus:ring-1 focus:ring-[#4ade80] focus:border-[#4ade80] outline-none transition-colors"
                                 />
                             </div>
                         </div>
 
                         {/* Max Price */}
-                        <div className="mb-5 border-t border-gray-100 pt-5">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Maximum Price</label>
+                        <div className="mb-5 border-t border-slate-800 pt-5">
+                            <label className="block text-sm font-medium text-slate-400 mb-2">Maximum Price</label>
                             <select 
                                 name="maxPrice"
                                 value={filters.maxPrice}
                                 onChange={handleFilterChange}
-                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+                                className="w-full px-3 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white outline-none focus:ring-1 focus:ring-[#4ade80] focus:border-[#4ade80] transition-colors appearance-none"
                             >
                                 <option value="">All prices</option>
                                 <option value="100">Under $100</option>
@@ -115,13 +120,15 @@ const ProductListPage = () => {
 
                 {/* --- Right column: Product List --- */}
                 <div className="flex-1">
-                    <div className="mb-6">
-                        <h1 className="text-2xl font-bold text-gray-900">Product List</h1>
-                        <p className="text-gray-500 mt-1">Found {filteredProducts.length} matching results</p>
+                    <div className="mb-8 border-b border-slate-800 pb-4">
+                        <h1 className="text-3xl font-bold text-white tracking-tight">Product List</h1>
+                        <p className="text-slate-400 mt-2">Found <b className="text-[#4ade80]">{filteredProducts.length}</b> matching results</p>
                     </div>
 
                     {loading ? (
-                        <div className="py-20 text-center text-gray-500">Loading...</div>
+                        <div className="py-20 flex justify-center text-slate-500">
+                            <LoaderCircle className="w-10 h-10 animate-spin text-[#4ade80]" />
+                        </div>
                     ) : filteredProducts.length > 0 ? (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                             {filteredProducts.map(product => (
@@ -129,8 +136,10 @@ const ProductListPage = () => {
                             ))}
                         </div>
                     ) : (
-                        <div className="py-20 text-center bg-white rounded-xl border border-gray-100 shadow-sm text-gray-500">
-                            No products found.
+                        <div className="py-24 flex flex-col items-center justify-center bg-[#111827] rounded-xl border border-slate-800 border-dashed text-slate-500">
+                            <PackageX className="w-12 h-12 mb-3 text-slate-600" />
+                            <p className="text-lg">No products found.</p>
+                            <p className="text-sm mt-1">Try adjusting your filters to find what you're looking for.</p>
                         </div>
                     )}
                 </div>
@@ -138,13 +147,13 @@ const ProductListPage = () => {
             </div>
 
             {/* --- MODAL WIZARD --- */}
+            {/* Nếu Modal của bạn chưa hỗ trợ Dark Theme tự động, bạn có thể cân nhắc cập nhật background của Modal sau */}
             <Modal 
                 isOpen={isWizardOpen} 
                 onClose={() => setIsWizardOpen(false)} 
                 title="Data Access Request"
                 fitContent={true}
             >
-                {/* Use the && operator to force the Wizard to re-render from scratch every time the Modal opens */}
                 {isWizardOpen && (
                     <RequestWizard 
                         initialProduct={selectedProduct}

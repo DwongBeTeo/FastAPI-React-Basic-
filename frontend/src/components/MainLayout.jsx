@@ -8,9 +8,10 @@ import Footer from "./footer/Footer";
 const MainLayout = () => {
     const { user } = useContext(AuthContext);
     const isAdmin = user?.role === 'ADMIN';
+    const baseBgClass = isAdmin ? "bg-gray-50 text-gray-900" : "bg-[#0B1121] text-slate-200";
 
     return (
-        <div className="min-h-screen bg-gray-50 font-sans text-gray-900">
+        <div className={`min-h-screen font-sans ${baseBgClass}`}>
             {/* ------------------------------------------------------ */}
             {/* Case1: ADMIN (Layout Dashboard: left - right)    */}
             {/* ------------------------------------------------------ */}
@@ -30,16 +31,16 @@ const MainLayout = () => {
                 /* ------------------------------------------------------ */
                 /* Case2: USER    */
                 /* ------------------------------------------------------ */
-                <div className="flex flex-col w-full">
+                <div className="flex flex-col min-h-screen w-full">
                     <MenuBar/>
+                    
                     {/* Hide Sidebar if role User */}
                     <div className="hidden">
                         <Sidebar/>
                     </div>
-
-                    <div className="flex-1 w-full max-w-[1440px] mx-auto p-4 md:p-6">
+                    <main className="flex-1 w-full">
                         <Outlet />
-                    </div>
+                    </main>
 
                     {/* Footer  */}
                     <Footer/>

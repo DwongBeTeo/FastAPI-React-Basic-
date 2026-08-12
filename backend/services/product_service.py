@@ -1,12 +1,10 @@
-# services/product_service.py
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 import models, schemas
 from typing import Optional
-
-# Import repository
 from repositories import product_repository
 
+# services/product_service.py
 def create_product(db: Session, product: schemas.ProductCreate):
     try:
         # 1. Logic Auto generated code

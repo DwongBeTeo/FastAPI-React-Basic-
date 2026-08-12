@@ -26,7 +26,7 @@ export const AuthProvider = ({ children }) => {
                 } else {
                     // Set lại user từ cục payload đã được mã hóa ở auth_service.py
                     setUser({
-                        username: decoded.sub,
+                        email: decoded.sub,
                         role: decoded.role
                     });
                 }
@@ -44,7 +44,7 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('token', token);
         const decoded = jwtDecode(token);
         setUser({
-            username: decoded.sub,
+            email: decoded.sub,
             role: decoded.role
         });
     };
@@ -52,9 +52,11 @@ export const AuthProvider = ({ children }) => {
     // Hàm gọi khi nhấn Logout
     const logout = () => {
         localStorage.removeItem('token');
-        setUser(null);
-        setLoading(false);
         navigate('/', {replace : true});
+        setTimeout(() => {
+            setUser(null);
+            setLoading(false);
+        }, 10);
     };
 
     const contextValue={
