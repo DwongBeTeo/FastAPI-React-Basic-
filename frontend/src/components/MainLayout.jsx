@@ -8,7 +8,8 @@ import Footer from "./footer/Footer";
 const MainLayout = () => {
     const { user } = useContext(AuthContext);
     const isAdmin = user?.role === 'ADMIN';
-    const baseBgClass = isAdmin ? "bg-gray-50 text-gray-900" : "bg-[#0B1121] text-slate-200";
+    // const baseBgClass = isAdmin ? "bg-[#0B1121] text-slate-200" : "bg-[#0B1121] text-slate-200";
+    const baseBgClass = "bg-[#0B1121] text-slate-200"
 
     return (
         <div className={`min-h-screen font-sans ${baseBgClass}`}>
@@ -23,7 +24,7 @@ const MainLayout = () => {
                     </div>
 
                     {/* Content right side */}
-                    <main className="flex-1 h-full overflow-y-auto bg-gray-50 relative p-6 md:p-8">
+                    <main className="flex-1 h-full overflow-y-auto bg-[#0B1121] relative p-6 md:p-8">
                         <Outlet />
                     </main>
                 </div>
@@ -36,14 +37,14 @@ const MainLayout = () => {
                     
                     {/* Hide Sidebar if role User */}
                     <div className="hidden">
-                        <Sidebar/>
+                        {/* <Sidebar/> */}
                     </div>
                     <main className="flex-1 w-full">
                         <Outlet />
                     </main>
 
                     {/* Footer  */}
-                    <Footer/>
+                    {/* <Footer/> */}
                 </div>
             )}
         </div>

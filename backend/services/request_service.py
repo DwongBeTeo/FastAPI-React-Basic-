@@ -9,9 +9,7 @@ import calendar
 from repositories import product_repository, request_repository, access_repository, promotion_repository
 
 # services/request_service.py
-# ==========================================
 # 1. UTILITY FUNCTIONS (HÀM TIỆN ÍCH DÙNG CHUNG)
-# ==========================================
 def get_start_of_next_month(d: date) -> date:
     """Lấy ngày đầu tiên của tháng tiếp theo"""
     if d.month == 12:
@@ -39,14 +37,11 @@ def generate_reference_code(db: Session) -> str:
     new_sequence = int(last_request.reference_code.split("-")[-1]) + 1 if last_request else 1
     return f"{prefix}{new_sequence:04d}"
 
-
-# ==========================================
 # 2. BUSINESS LOGIC HELPERS (HÀM XỬ LÝ NGHIỆP VỤ)
-# ==========================================
 def _validate_and_get_promotion(db: Session, promotion_code: str, current_date: date):
     """Kiểm tra mã giảm giá và trả về cấu hình giảm giá"""
     if not promotion_code:
-        return None, None, 0.0
+        return None, None, 0.0, 0
 
     promotion = promotion_repository.get_promotion_by_code(db, promotion_code)
     if not promotion or not promotion.is_active:
@@ -54,7 +49,7 @@ def _validate_and_get_promotion(db: Session, promotion_code: str, current_date: 
     if promotion.expiration_date and promotion.expiration_date < current_date:
         raise HTTPException(status_code=400, detail="Promotion code has expired.")
         
-    return promotion.id, promotion.discount_type, promotion.discount_value
+    return promotion.id, promotion.discount_type, promotion.discount_value, promotion.min_order_value
 
 
 def _process_request_item(
@@ -86,9 +81,7 @@ def _process_request_item(
     std_to_date = None
     total_months = 0
 
-    # =========================================================
     # LƯỚI LỌC 1: HISTORICAL DATA (Giữ nguyên)
-    # =========================================================
     if item.subscription_type == SubscriptionTypeEnum.HISTORICAL:
         if not item.to_date:
             raise HTTPException(status_code=400, detail=f"Historical data for '{product.name}' requires a 'to_date'.")
@@ -109,22 +102,42 @@ def _process_request_item(
                 
         total_months = calculate_months(std_from_date, std_to_date)
 
-    # =========================================================
-    # LƯỚI LỌC 2: ONGOING SUBSCRIPTION (Sửa lại logic chặn)
-    # =========================================================
+    # LƯỚI LỌC 2: ONGOING SUBSCRIPTION
     elif item.subscription_type == SubscriptionTypeEnum.ONGOING:
         if product.available_to and std_from_date > product.available_to:
             raise HTTPException(status_code=400, detail=f"Product '{product.name}' is no longer updating. Cannot create Ongoing Subscription.")
             
-        # SỬA Ở ĐÂY: Dùng next_month_start làm ranh giới tuyệt đối
+        # Ranh giới tuyệt đối: Phải từ tháng tiếp theo trở đi
         if std_from_date < next_month_start:
             raise HTTPException(
                 status_code=400, 
                 detail=f"Ongoing subscription for '{product.name}' must start from the next month ({next_month_start.strftime('%m/%Y')}) or later."
             )
 
-        std_to_date = None 
-        total_months = 1
+        # Kiểm tra xem khách có chọn End Date (to_date) hay không
+        if item.to_date:
+            # Khách có chọn ngày kết thúc
+            std_to_date = get_end_of_month(item.to_date)
+            
+            # 1. Chặn End Date nằm trước Start Date
+            if std_to_date < std_from_date:
+                raise HTTPException(status_code=400, detail="The 'to_date' cannot be earlier than the 'from_date'.")
+                
+            # 2. Chặn End Date vượt quá tuổi thọ của sản phẩm (nếu sản phẩm có ngày kết thúc)
+            if product.available_to:
+                std_avail_to = get_end_of_month(product.available_to)
+                if std_to_date > std_avail_to:
+                    raise HTTPException(
+                        status_code=400, 
+                        detail=f"Ongoing subscription for '{product.name}' can only be set up to {std_avail_to.strftime('%m/%Y')}."
+                    )
+            
+            # 3. Tính toán số tháng thực tế khách đã chọn
+            total_months = calculate_months(std_from_date, std_to_date)
+        else:
+            # Khách bỏ trống End Date -> Mua vô thời hạn
+            std_to_date = None 
+            total_months = 1   # Thu tiền cọc 1 tháng đầu tiên
 
     # CHỐNG TRÙNG LẶP
     if request_repository.get_pending_request_item(db, user_id, item.product_id):
@@ -149,29 +162,27 @@ def _process_request_item(
         calculated_months=total_months,
         applied_price=applied_price
     )
-    return item_model, applied_price
+    return item_model, applied_price, base_price
 
-
-# ==========================================
 # 3. MAIN FUNCTION (HÀM ĐIỀU PHỐI CHÍNH)
-# ==========================================
 def create_request(db: Session, request_data: schemas.DataRequestCreate, user_id: int):
     try:
         current_date = datetime.now().date()
         
         # 1. Xác thực và cấu hình mã giảm giá
-        promo_id, discount_type, discount_value = _validate_and_get_promotion(
+        promo_id, discount_type, discount_value, min_order_value = _validate_and_get_promotion(
             db, request_data.promotion_code, current_date
         )
 
         new_items = []
         total_request_price = 0
+        cart_subtotal = 0 
 
         # 2. Xử lý logic và tính tiền cho từng sản phẩm
         for item in request_data.items:
-            item_model, item_price = _process_request_item(
+            item_model, item_price, base_price = _process_request_item(
                 db=db, 
-                item=item, 
+                item=item,
                 user_id=user_id, 
                 current_date=current_date, 
                 discount_type=discount_type, 
@@ -179,6 +190,15 @@ def create_request(db: Session, request_data: schemas.DataRequestCreate, user_id
             )
             new_items.append(item_model)
             total_request_price += item_price
+
+            cart_subtotal += base_price
+
+        # CHỐT CHẶN MIN ORDER VALUE SAU KHI ĐÃ CỘNG TỔNG
+        if promo_id and cart_subtotal < min_order_value:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Order subtotal (${cart_subtotal}) must be at least ${min_order_value} to apply this promotion."
+            )
 
         # 3. Trừ tiền nếu dùng mã giảm giá cố định (FIXED) trên tổng hóa đơn
         if discount_type == DiscountTypeEnum.FIXED:

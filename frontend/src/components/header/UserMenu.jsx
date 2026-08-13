@@ -1,8 +1,7 @@
-// src/components/header/UserMenu.jsx
-import React, { useState, useRef, useEffect, useContext } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
-import { User, LogOut } from 'lucide-react';
-import AuthContext from '../../context/AuthContext';
+import { useContext, useState, useEffect, useRef } from "react";
+import { NavLink, useNavigate } from "react-router-dom";
+import { User, LogOut, UserCircle } from "lucide-react";
+import AuthContext from "../../context/AuthContext";
 
 const UserMenu = () => {
     const { user, logout } = useContext(AuthContext);
@@ -15,7 +14,6 @@ const UserMenu = () => {
         setShowDropdown(false);
     };
 
-    // Xử lý click outside để đóng dropdown
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (dropDownRef.current && !dropDownRef.current.contains(event.target)) {
@@ -32,28 +30,25 @@ const UserMenu = () => {
 
     return (
         <div className="relative" ref={dropDownRef}>
-            {/* LUÔN HIỂN THỊ ICON HÌNH TRÒN */}
+            {/* THAY ICON MATERIAL BẰNG LUCIDE-REACT ĐỂ REACT KIỂM SOÁT 100% DOM */}
             <button 
                 onClick={() => setShowDropdown(!showDropdown)} 
                 className="flex items-center justify-center w-10 h-10 rounded-full bg-slate-800 hover:bg-slate-700 transition-colors text-slate-300 border border-slate-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#4ade80] focus:ring-offset-2 focus:ring-offset-[#0B1121]"
             >
-                <span className="material-symbols-outlined text-[24px]">account_circle</span>
+                <UserCircle className="w-6 h-6" strokeWidth={1.5} />
             </button>
 
-            {/* NỘI DUNG DROPDOWN */}
             {showDropdown && (
                 <div className="absolute right-0 mt-3 w-64 bg-[#111827] rounded-xl shadow-2xl shadow-black/50 border border-slate-700/50 py-2 z-50 overflow-hidden transform origin-top-right transition-all">
                     {user ? (
-                        /* --- TRƯỜNG HỢP ĐÃ ĐĂNG NHẬP --- */
                         <>
-                            {/* Thông tin user vắn tắt */}
                             <div className="px-4 py-3 border-b border-slate-700/50 bg-[#0f172a] mb-1">
                                 <p className="text-sm font-semibold text-white truncate">Hello, {user.email}</p>
                                 <p className="text-xs text-slate-400 truncate mt-0.5">Role: <span className="text-[#4ade80] uppercase tracking-wider">{user.role}</span></p>
                             </div>
 
-                            {/* Menu cá nhân */}
                             <div className="py-1 border-b border-slate-700/50">
+                                {/* Route này nằm trong MainLayout, có thể giữ onClick */}
                                 <NavLink 
                                     to="/my-profile" 
                                     onClick={() => setShowDropdown(false)}
@@ -64,8 +59,8 @@ const UserMenu = () => {
                                 </NavLink>
                             </div>
 
-                            {/* Requests Accepted, History requests */}
                             <div className="py-1 border-b border-slate-700/50">
+                                {/* Route này nằm trong MainLayout, có thể giữ onClick */}
                                 <NavLink 
                                     to="/my-dashboard" 
                                     onClick={() => setShowDropdown(false)}
@@ -76,7 +71,6 @@ const UserMenu = () => {
                                 </NavLink>
                             </div>
 
-                            {/* Đăng xuất */}
                             <div className="py-1 mt-1">
                                 <button 
                                     onClick={handleLogout} 
@@ -88,7 +82,6 @@ const UserMenu = () => {
                             </div>
                         </>
                     ) : (
-                        /* --- TRƯỜNG HỢP CHƯA ĐĂNG NHẬP --- */
                         <div className="p-5 flex flex-col gap-4">
                             <div className="text-center">
                                 <p className="font-semibold text-white">Your Account</p>
@@ -96,9 +89,9 @@ const UserMenu = () => {
                             </div>
                             
                             <div className="flex flex-col gap-3">
+                                {/* ĐÃ XÓA onClick ở đây để tránh Race Condition */}
                                 <NavLink 
                                     to="/login" 
-                                    onClick={() => setShowDropdown(false)}
                                     className="flex items-center justify-center w-full py-2.5 px-4 bg-[#4ade80] hover:bg-[#22c55e] text-slate-900 text-sm font-bold rounded-lg transition-colors shadow-lg shadow-green-900/20"
                                 >
                                     Login
@@ -106,9 +99,9 @@ const UserMenu = () => {
                                 
                                 <div className="text-xs text-center text-slate-400 mt-1">
                                     Don't have an account?{' '}
+                                    {/* ĐÃ XÓA onClick ở đây để tránh Race Condition */}
                                     <NavLink 
                                         to="/register" 
-                                        onClick={() => setShowDropdown(false)}
                                         className="text-[#4ade80] font-semibold hover:text-[#22c55e] transition-colors"
                                     >
                                         Register

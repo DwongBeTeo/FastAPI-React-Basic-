@@ -21,17 +21,29 @@ def get_products(
     """Lấy danh sách sản phẩm có kèm filter theo giá"""
     query = db.query(models.Product)
     
+    # 1. Áp dụng bộ lọc giá (Dành cho User)
     if min_price is not None:
         query = query.filter(models.Product.price >= min_price)
     if max_price is not None:
         query = query.filter(models.Product.price <= max_price)
         
-    return query.order_by(models.Product.id).offset(skip).limit(limit).all()
+    # 2. Đếm tổng số lượng sản phẩm THỎA MÃN ĐIỀU KIỆN LỌC
+    total_count = query.count()
+    
+    # 3. Lấy dữ liệu của trang hiện tại
+    products = query.offset(skip).limit(limit).all()
+    
+    # 4. Trả về đúng định dạng của PaginatedProductResponse
+    return {
+        "total": total_count,
+        "data": products
+    }
+    # return query.order_by(models.Product.id).offset(skip).limit(limit).all()
 
 def create_product(db: Session, product: models.Product):
     """Chuẩn bị lưu sản phẩm mới vào DB"""
     db.add(product)
-    db.flush() # Đẩy lệnh xuống DB để lấy ID, nhưng CHƯA chốt giao dịch
+    db.flush()
     return product
 
 def update_product(db: Session, product: models.Product):

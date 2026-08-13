@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends
 import auth
 
-from routers import product,request_router,access_router
-from routers.admin import admin_product, admin_request, admin_product_data
+from routers import product,request_router,access_router,promotions
+from routers.admin import admin_product, admin_request, admin_product_data, admin_promotion
 from routers import auth_router
     
 
@@ -15,6 +15,7 @@ admin_router = APIRouter(
 admin_router.include_router(admin_request.router, prefix="/requests")
 admin_router.include_router(admin_product.router, prefix="/products")
 admin_router.include_router(admin_product_data.router, prefix="/product-data")
+admin_router.include_router(admin_promotion.router, prefix="/promotions")
 
 
 # 2. USER GROUP (User only)
@@ -23,6 +24,7 @@ user_router = APIRouter()
 user_router.include_router(product.router)
 user_router.include_router(request_router.router)
 user_router.include_router(access_router.router)
+user_router.include_router(promotions.router)
 
 
 # 3. API V1 GROUP (Public)

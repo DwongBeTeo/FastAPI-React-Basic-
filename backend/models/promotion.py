@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, Date, Float, Enum
+from sqlalchemy import Column, Integer, String, Boolean, Date, Float, Enum, text
 from database import Base
 import enum
 
@@ -18,7 +18,10 @@ class Promotion(Base):
     discount_type = Column(Enum(DiscountTypeEnum), nullable=False) 
     
     # Giá trị giảm: VD 20 (nếu là PERCENTAGE) hoặc 500000 (nếu là FIXED)
-    discount_value = Column(Float, nullable=False) 
+    discount_value = Column(Float, nullable=False)
+
+    # Giá trị đơn hàng tối thiểu
+    min_order_value = Column(Integer, nullable=False, server_default=text("0"))
     
     is_active = Column(Boolean, default=True)
     expiration_date = Column(Date, nullable=True)

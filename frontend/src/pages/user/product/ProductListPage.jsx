@@ -1,16 +1,22 @@
 // src/pages/user/product/ProductListPage.jsx
 import React, { useState, useEffect } from 'react';
-import { LoaderCircle, Search } from 'lucide-react';
+import { LoaderCircle, Search, PackageX } from 'lucide-react';
 import axiosConfig from '../../../utils/axiosConfig';
 import ProductCard from '../../../components/user/product/ProductCard'
 import { API_ENDPOINTS } from '../../../utils/apiEndPoint';
 import { useNavigate } from 'react-router-dom';
 import { Modal } from '../../../components/Modal';
 import RequestWizard from '../../../components/user/request/RequestWizard';
+import Pagination from '../../../components/common/Pagination';
 
 const ProductListPage = () => {
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
+
+    // --- State Phân Trang ---
+    const [totalItems, setTotalItems] = useState(0);
+    const [currentPage, setCurrentPage] = useState(1);
+    const limit = 7; // 
 
     const [filters, setFilters] = useState({
         search: '',
@@ -21,27 +27,40 @@ const ProductListPage = () => {
     const [isWizardOpen, setIsWizardOpen] = useState(false);
     const [selectedProduct, setSelectedProduct] = useState(null);
 
-    useEffect(() => {
-        const fetchProducts = async () => {
-            try {
-                setLoading(true);
-                const response = await axiosConfig.get(`${API_ENDPOINTS.USER.GET_AVAILABLE_PRODUCTS}?skip=0&limit=100`);
-                let fetchedProducts = response || [];
-                
-                // Sort theo ID giảm dần (Sản phẩm tạo sau có ID lớn hơn sẽ lên đầu)
-                fetchedProducts.sort((a, b) => b.id - a.id);
-                
-                setProducts(fetchedProducts);
-                // setProducts(response || []);
-            } catch (error) {
-                console.error("Error loading products:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
+    // Cập nhật hàm fetch để hỗ trợ pagination
+    const fetchProducts = async (page) => {
+        try {
+            setLoading(true);
+            const skip = (page - 1) * limit;
+            
+            // Xây dựng URL kèm tham số phân trang
+            let url = `${API_ENDPOINTS.USER.GET_AVAILABLE_PRODUCTS}?skip=${skip}&limit=${limit}`;
+            
+            const response = await axiosConfig.get(url);
+            
+            // Lấy data và total từ chuẩn API mới
+            let fetchedProducts = response.data || [];
+            
+            // Sort theo ID giảm dần
+            fetchedProducts.sort((a, b) => b.id - a.id);
+            
+            setProducts(fetchedProducts);
+            setTotalItems(response.total || 0); // Lưu tổng số lượng
 
-        fetchProducts();
-    }, []);
+        } catch (error) {
+            console.error("Error loading products:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Gọi lại API khi currentPage thay đổi
+    useEffect(() => {
+        fetchProducts(currentPage);
+    }, [currentPage]);
+
+    // Tính tổng số trang
+    const totalPages = Math.ceil(totalItems / limit);
 
     const handleFilterChange = (e) => {
         const { name, value } = e.target;
@@ -63,7 +82,8 @@ const ProductListPage = () => {
         navigate('/my-dashboard'); 
     };
 
-    // Client-side Filter Logic
+    // Client-side Filter Logic (Lưu ý: Nếu có phân trang Server, lý tưởng nhất là 
+    // đẩy cả Search và MaxPrice xuống Backend xử lý. Nhưng tạm thời bạn vẫn có thể để ở FE)
     const filteredProducts = products.filter(product => {
         const matchSearch = product.name.toLowerCase().includes(filters.search.toLowerCase()) || 
                             product.code.toLowerCase().includes(filters.search.toLowerCase());
@@ -75,7 +95,6 @@ const ProductListPage = () => {
     });
 
     return (
-        // Đổi màu nền chính sang Dark Theme
         <div className="bg-[#0B1121] min-h-screen pb-12 pt-8">
             <div className="max-w-[1440px] mx-auto px-5 md:px-10 lg:px-20 flex flex-col md:flex-row gap-8">
                 
@@ -122,7 +141,7 @@ const ProductListPage = () => {
                 <div className="flex-1">
                     <div className="mb-8 border-b border-slate-800 pb-4">
                         <h1 className="text-3xl font-bold text-white tracking-tight">Product List</h1>
-                        <p className="text-slate-400 mt-2">Found <b className="text-[#4ade80]">{filteredProducts.length}</b> matching results</p>
+                        <p className="text-slate-400 mt-2">Found <b className="text-[#4ade80]">{filteredProducts.length}</b> matching results in this page</p>
                     </div>
 
                     {loading ? (
@@ -130,10 +149,21 @@ const ProductListPage = () => {
                             <LoaderCircle className="w-10 h-10 animate-spin text-[#4ade80]" />
                         </div>
                     ) : filteredProducts.length > 0 ? (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {filteredProducts.map(product => (
-                                <ProductCard key={product.id} product={product} onBuyClick={handleBuyClick} />
-                            ))}
+                        <div className="flex flex-col gap-8">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {filteredProducts.map(product => (
+                                    <ProductCard key={product.id} product={product} onBuyClick={handleBuyClick} />
+                                ))}
+                            </div>
+                            
+                            {/* --- COMPONENT PHÂN TRANG CHO USER --- */}
+                            {totalPages > 1 && (
+                                <Pagination 
+                                    currentPage={currentPage}
+                                    totalPages={totalPages}
+                                    onPageChange={(page) => setCurrentPage(page)}
+                                />
+                            )}
                         </div>
                     ) : (
                         <div className="py-24 flex flex-col items-center justify-center bg-[#111827] rounded-xl border border-slate-800 border-dashed text-slate-500">
@@ -146,8 +176,6 @@ const ProductListPage = () => {
 
             </div>
 
-            {/* --- MODAL WIZARD --- */}
-            {/* Nếu Modal của bạn chưa hỗ trợ Dark Theme tự động, bạn có thể cân nhắc cập nhật background của Modal sau */}
             <Modal 
                 isOpen={isWizardOpen} 
                 onClose={() => setIsWizardOpen(false)} 

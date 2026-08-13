@@ -94,31 +94,31 @@ const ProductDataPage = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 p-6">
+        <div className="min-h-screen p-6 text-slate-300">
             <div className="max-w-6xl mx-auto">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-900">System Data Content</h1>
-                        <p className="text-gray-500 text-sm mt-1">Manage actual data repository of products</p>
+                        <h1 className="text-2xl font-bold text-white">System Data Content</h1>
+                        <p className="text-slate-400 text-sm mt-1">Manage actual data repository of products</p>
                     </div>
                     
                     <div className="flex items-center gap-3 w-full md:w-auto">
                         <div className="relative flex-1 md:w-64">
-                            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                             <select 
                                 value={selectedFilterId}
                                 onChange={(e) => setSelectedFilterId(e.target.value)}
-                                className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg outline-none focus:border-blue-500 text-sm bg-white"
+                                className="w-full pl-9 pr-4 py-2.5 border border-slate-700 rounded-lg outline-none focus:border-[#4ade80] text-sm bg-[#0B1121] text-white transition-colors"
                             >
-                                <option value="">All products</option>
+                                <option value="" className="bg-[#111827]">All products</option>
                                 {products.map(p => (
-                                    <option key={p.id} value={p.id}>{p.code} - {p.name}</option>
+                                    <option key={p.id} value={p.id} className="bg-[#111827]">{p.code} - {p.name}</option>
                                 ))}
                             </select>
                         </div>
                         <button 
                             onClick={handleOpenAddModal}
-                            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-sm transition-all font-medium text-sm whitespace-nowrap"
+                            className="flex items-center justify-center gap-2 px-5 py-2.5 bg-[#4ade80] text-slate-900 rounded-lg hover:bg-[#22c55e] shadow-lg shadow-green-900/20 transition-all font-bold text-sm whitespace-nowrap"
                         >
                             <Plus size={18} /> Add Data
                         </button>
@@ -126,8 +126,9 @@ const ProductDataPage = () => {
                 </div>
 
                 {loading ? (
-                    <div className="text-center py-12 text-gray-500">Loading data structure...</div>
+                    <div className="text-center py-12 text-slate-500">Loading data structure...</div>
                 ) : (
+                    // LƯU Ý: Bạn cần chỉnh sửa màu bên trong ProductDataList
                     <ProductDataList 
                         dataList={dataList} 
                         products={products}

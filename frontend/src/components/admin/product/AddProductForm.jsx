@@ -71,99 +71,99 @@ const AddProductForm = ({ onSubmit, onCancel, initialData, isEditing }) => {
     };
 
     return (
-        <div className="flex flex-col bg-white h-full w-full min-h-0">
+        <div className="flex flex-col bg-[#111827] text-slate-300 h-full w-full min-h-0">
             <form onSubmit={handleSubmit} className="flex flex-col h-full min-h-0">
-                <div className="flex-1 min-h-0 overflow-y-auto p-5 md:p-6">
+                <div className="flex-1 min-h-0 overflow-y-auto p-5 md:p-6 space-y-5 custom-scrollbar">
                     {error && (
-                        <div className="mb-5 p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100">
-                            <span className="font-medium mr-1">Error:</span> {error}
+                        <div className="mb-5 p-3 bg-red-900/30 text-red-400 text-sm rounded-lg border border-red-800 font-medium">
+                            <span className="font-bold mr-1">Error:</span> {error}
                         </div>
                     )}
 
                     <div className="flex flex-col gap-5">
                         {isEditing && (
                             <div>
-                                <label className="block text-sm font-medium text-gray-500 mb-1">Code of Product</label>
+                                <label className="block text-sm font-bold text-slate-400 mb-1.5">Code of Product</label>
                                 <input 
                                     type="text" 
                                     value={initialData?.code || ''}
                                     disabled
-                                    className="w-full px-4 py-2 border border-gray-200 rounded-lg bg-gray-100 text-gray-500 outline-none cursor-not-allowed"
+                                    className="w-full px-4 py-2.5 border border-slate-800 rounded-lg bg-slate-900 text-slate-500 outline-none cursor-not-allowed font-mono"
                                 />
                             </div>
                         )}
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Name of Product<span className="text-red-500">*</span></label>
+                            <label className="block text-sm font-bold text-slate-400 mb-1.5">Name of Product<span className="text-red-500">*</span></label>
                             <input 
                                 type="text" 
                                 value={formData.name}
                                 onChange={(e) => updateField('name', e.target.value)}
                                 placeholder="Type..."
-                                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                className="w-full px-4 py-2.5 bg-[#0B1121] border border-slate-700 rounded-lg focus:border-[#4ade80] outline-none transition-colors text-white placeholder-slate-600"
                                 required
                             />
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Base Retail Price / Month ($) <span className="text-red-500">*</span></label>
+                            <label className="block text-sm font-bold text-slate-400 mb-1.5">Base Retail Price / Month ($) <span className="text-red-500">*</span></label>
                             <input 
                                 type="number" 
                                 value={formData.price}
                                 onChange={(e) => updateField('price', e.target.value)}
                                 placeholder="0"
-                                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                className="w-full px-4 py-2.5 bg-[#0B1121] border border-slate-700 rounded-lg focus:border-[#4ade80] outline-none transition-colors text-white placeholder-slate-600"
                                 required
                             />
                         </div>
 
                         {/* --- KHU VỰC CHỌN NGÀY --- */}
-                        <div className="grid grid-cols-2 gap-4 border-t border-gray-100 pt-4 mt-2">
+                        <div className="grid grid-cols-2 gap-4 border-t border-slate-800 pt-4 mt-2">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">From Date</label>
+                                <label className="block text-sm font-bold text-slate-400 mb-1.5">From Date</label>
                                 <input 
                                     type="date" 
                                     value={formData.available_from}
                                     onChange={(e) => updateField('available_from', e.target.value)}
-                                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm"
+                                    className="w-full px-4 py-2.5 bg-[#0B1121] border border-slate-700 rounded-lg focus:border-[#4ade80] outline-none transition-colors text-sm text-white [&::-webkit-calendar-picker-indicator]:filter-[invert(1)]"
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">To Date</label>
+                                <label className="block text-sm font-bold text-slate-400 mb-1.5">To Date</label>
                                 <input 
                                     type="date" 
                                     value={formData.available_to}
-                                    min={formData.available_from} // Chặn User không chọn được ngày bé hơn available_from
+                                    min={formData.available_from} 
                                     onChange={(e) => updateField('available_to', e.target.value)}
-                                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm"
+                                    className="w-full px-4 py-2.5 bg-[#0B1121] border border-slate-700 rounded-lg focus:border-[#4ade80] outline-none transition-colors text-sm text-white [&::-webkit-calendar-picker-indicator]:filter-[invert(1)]"
                                 />
                             </div>
-                            <div className="col-span-2 text-xs text-gray-500">
-                                * Leave blank if the product has no time limit (always available)..
+                            <div className="col-span-2 text-xs text-slate-500">
+                                * Leave blank if the product has no time limit (always available).
                             </div>
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                            <label className="block text-sm font-bold text-slate-400 mb-1.5">Status</label>
                             <select 
                                 value={formData.is_active ? 'true' : 'false'}
                                 onChange={(e) => updateField('is_active', e.target.value === 'true')}
-                                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all bg-white"
+                                className="w-full px-4 py-2.5 border border-slate-700 rounded-lg outline-none focus:border-[#4ade80] transition-colors bg-[#0B1121] text-white"
                             >
-                                <option value="true">Active</option>
-                                <option value="false">Inactive</option>
+                                <option value="true" className="bg-[#111827]">Active</option>
+                                <option value="false" className="bg-[#111827]">Inactive</option>
                             </select>
                         </div>
                     </div>
                 </div>
 
-                <div className="py-4 px-6 border-t border-gray-100 bg-gray-50 flex items-center justify-end gap-3 shrink-0">
+                <div className="py-4 px-6 border-t border-slate-800 bg-[#0f172a] flex items-center justify-end gap-3 shrink-0">
                     {onCancel && (
                         <button 
                             type="button"
                             onClick={onCancel}
                             disabled={isLoading}
-                            className="px-5 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 focus:outline-none disabled:opacity-50 transition-colors"
+                            className="px-5 py-2.5 text-sm font-medium text-slate-300 bg-slate-800 border border-slate-700 rounded-lg hover:bg-slate-700 hover:text-white focus:outline-none disabled:opacity-50 transition-colors"
                         >
                             Cancel
                         </button>
@@ -171,9 +171,9 @@ const AddProductForm = ({ onSubmit, onCancel, initialData, isEditing }) => {
                     <button 
                         type="submit"
                         disabled={isLoading}
-                        className="flex items-center gap-2 px-6 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-70 shadow-sm transition-colors"
+                        className="flex items-center gap-2 px-6 py-2.5 text-sm font-bold text-slate-900 bg-[#4ade80] rounded-lg hover:bg-[#22c55e] focus:outline-none disabled:opacity-70 shadow-lg shadow-green-900/20 transition-colors"
                     >
-                        {isLoading ? <LoaderCircle className='w-4 h-4 animate-spin'/> : <Save className="w-4 h-4" />}
+                        {isLoading ? <LoaderCircle className='w-4 h-4 animate-spin text-slate-900'/> : <Save className="w-4 h-4" />}
                         Save Data
                     </button>
                 </div>

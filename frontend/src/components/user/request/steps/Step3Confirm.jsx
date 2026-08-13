@@ -1,6 +1,7 @@
 // src/components/user/request/steps/Step3Confirm.jsx
 import React, { useState } from 'react';
-import { Tag } from 'lucide-react';
+import { Tag, LoaderCircle } from 'lucide-react';
+import axiosConfig from '../../../../utils/axiosConfig';
 
 const Step3Confirm = ({ 
     cartItems, 
@@ -11,17 +12,58 @@ const Step3Confirm = ({
     getSubItemPrice 
 }) => {
     const [isApplied, setIsApplied] = useState(false);
+    const [isApplying, setIsApplying] = useState(false);
+    const [promoError, setPromoError] = useState('');
+    const [promoDetails, setPromoDetails] = useState(null);
 
+    // 1. Tính toán Base Total (Giá gốc chưa giảm)
     let cartTotalEstimate = 0;
     cartItems.forEach(item => {
         cartTotalEstimate += getSubItemPrice(item, 'HISTORICAL');
         cartTotalEstimate += getSubItemPrice(item, 'ONGOING');
     });
 
-    const handleApplyPromo = () => {
-        if (promotionCode.trim() !== '') {
-            setIsApplied(true);
+    // 2. Tính toán tiền giảm giá dựa vào thông tin API trả về
+    let discountAmount = 0;
+    let finalTotal = cartTotalEstimate;
+
+    if (isApplied && promoDetails) {
+        if (promoDetails.discount_type === 'PERCENTAGE') {
+            discountAmount = Math.floor(cartTotalEstimate * (promoDetails.discount_value / 100));
+        } else if (promoDetails.discount_type === 'FIXED') {
+            discountAmount = promoDetails.discount_value;
         }
+        finalTotal = Math.max(0, cartTotalEstimate - discountAmount);
+    }
+
+    // 3. Hàm gọi API kiểm tra mã
+    const handleApplyPromo = async () => {
+        if (!promotionCode || promotionCode.trim() === '') return;
+        
+        setIsApplying(true);
+        setPromoError('');
+        setIsApplied(false);
+        setPromoDetails(null);
+
+        try {
+            // Gọi API kiểm tra mã giảm giá
+            const response = await axiosConfig.get(`/promotions/check/${promotionCode.trim().toUpperCase()}`);
+            
+            // Lưu dữ liệu vào state để tính toán
+            setPromoDetails(response);
+            setIsApplied(true);
+        } catch (error) {
+            setPromoError(error.response?.data?.detail || "Invalid or expired promotion code.");
+        } finally {
+            setIsApplying(false);
+        }
+    };
+
+    const handlePromoChange = (e) => {
+        setPromotionCode(e.target.value.toUpperCase());
+        setIsApplied(false);
+        setPromoDetails(null);
+        setPromoError('');
     };
 
     return (
@@ -46,7 +88,9 @@ const Step3Confirm = ({
                                     <div className="flex justify-between items-start">
                                         <div>
                                             <p className="text-sm font-medium text-blue-400">Ongoing Subscription</p>
-                                            <p className="text-xs text-slate-500 mt-0.5">Starting from {item.ongoing_from}</p>
+                                            <p className="text-xs text-slate-500 mt-0.5">
+                                                {item.ongoing_to ? `${item.ongoing_from} to ${item.ongoing_to}` : `Starting from ${item.ongoing_from}`}
+                                            </p>
                                         </div>
                                         <div className="text-sm font-mono text-slate-300">
                                             ${getSubItemPrice(item, 'ONGOING').toLocaleString('en-US')}
@@ -80,26 +124,35 @@ const Step3Confirm = ({
                         <input 
                             type="text"
                             value={promotionCode}
-                            onChange={(e) => {
-                                setPromotionCode(e.target.value.toUpperCase());
-                                setIsApplied(false);
-                            }}
+                            onChange={handlePromoChange}
                             placeholder="e.g., WELCOME20"
-                            className="w-full pl-10 pr-4 py-3 bg-[#0B1121] border border-slate-700 rounded-lg outline-none focus:border-[#4ade80] text-sm text-white uppercase tracking-wider transition-colors placeholder-slate-600 font-medium"
+                            className={`w-full pl-10 pr-4 py-3 bg-[#0B1121] border rounded-lg outline-none text-sm text-white uppercase tracking-wider transition-colors placeholder-slate-600 font-medium ${
+                                promoError ? 'border-red-500 focus:border-red-500' : 'border-slate-700 focus:border-[#4ade80]'
+                            }`}
                         />
                     </div>
                     <button 
                         type="button"
                         onClick={handleApplyPromo}
-                        className={`px-8 py-3 text-sm font-bold rounded-lg transition-colors ${isApplied ? 'bg-slate-800 text-slate-400 cursor-default border border-slate-700' : 'bg-slate-700 hover:bg-slate-600 text-white'}`}
+                        disabled={isApplying || isApplied}
+                        className={`px-8 py-3 text-sm font-bold rounded-lg transition-colors flex items-center justify-center min-w-[120px] ${
+                            isApplied 
+                            ? 'bg-slate-800 text-slate-400 cursor-default border border-slate-700' 
+                            : 'bg-slate-700 hover:bg-slate-600 text-white'
+                        }`}
                     >
-                        {isApplied ? 'Applied' : 'Apply'}
+                        {isApplying ? <LoaderCircle className="w-5 h-5 animate-spin" /> : (isApplied ? 'Applied' : 'Apply')}
                     </button>
                 </div>
-                {isApplied && (
+                
+                {promoError && (
+                    <p className="text-red-400 text-xs mt-3">{promoError}</p>
+                )}
+
+                {isApplied && promoDetails && (
                     <p className="text-[#4ade80] text-xs mt-3 flex items-center gap-1.5 font-medium">
                         <svg width="14" height="14" viewBox="0 0 12 12" fill="none"><path d="M10 3L4.5 8.5L2 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                        Code applied. Final invoice calculation will be performed by Admin.
+                        Code applied successfully. {promoDetails.discount_type === 'PERCENTAGE' ? `${promoDetails.discount_value}%` : `$${promoDetails.discount_value.toLocaleString()}`} off.
                     </p>
                 )}
             </div>
@@ -110,15 +163,17 @@ const Step3Confirm = ({
                     <span>Original Total</span>
                     <span className="font-mono text-slate-300">${cartTotalEstimate.toLocaleString('en-US')}</span>
                 </div>
-                {isApplied && (
+                
+                {isApplied && promoDetails && (
                     <div className="flex justify-between items-center text-sm text-[#4ade80]">
                         <span>Discount ({promotionCode})</span>
-                        <span className="font-mono italic">To be calculated</span>
+                        <span className="font-mono">- ${discountAmount.toLocaleString('en-US')}</span>
                     </div>
                 )}
+                
                 <div className="border-t border-slate-800 pt-5 flex justify-between items-end">
-                    <span className="font-bold text-lg text-white">Estimated Base Total</span>
-                    <span className="font-bold text-2xl text-[#4ade80] font-mono">${cartTotalEstimate.toLocaleString('en-US')}</span>
+                    <span className="font-bold text-lg text-white">Grand Total</span>
+                    <span className="font-bold text-3xl text-[#4ade80] font-mono">${finalTotal.toLocaleString('en-US')}</span>
                 </div>
             </div>
 

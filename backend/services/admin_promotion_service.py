@@ -2,15 +2,49 @@ from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 import models, schemas
 from repositories import promotion_repository
+import string
+import random
+
 # services/admin_promotion_service.py
+# 1. HELPER FUNCTIONS
+def _generate_random_code(length: int = 8) -> str:
+    """Sinh một chuỗi ngẫu nhiên gồm chữ in hoa và số"""
+    chars = string.ascii_uppercase + string.digits
+    random_str = ''.join(random.choice(chars) for _ in range(length))
+    return f"PROMO-{random_str}"
+
+def _get_or_create_unique_code(db: Session, provided_code: str | None) -> str:
+    """
+    Nếu Admin nhập mã: Kiểm tra xem có bị trùng không.
+    Nếu Admin để trống: Tự động sinh mã mới và đảm bảo không trùng lặp trong DB.
+    """
+    if provided_code:
+        # Trường hợp Admin tự nhập mã
+        existing_promo = promotion_repository.get_promotion_by_code(db, provided_code)
+        if existing_promo:
+            raise HTTPException(status_code=400, detail=f"Promotion code '{provided_code}' already exists.")
+        return provided_code
+
+    # Trường hợp Admin để trống -> Hệ thống tự sinh mã
+    while True:
+        new_code = _generate_random_code()
+        # Query DB kiểm tra xem mã vừa sinh có bị trùng không
+        if not promotion_repository.get_promotion_by_code(db, new_code):
+            return new_code
+
+# 2. MAIN FUNCTION
 def create_promotion(db: Session, promo_in: schemas.PromotionCreate):
     try:
-        # Check if code exists
-        existing_promo = promotion_repository.get_promotion_by_code(db, promo_in.code)
-        if existing_promo:
-            raise HTTPException(status_code=400, detail="Promotion code already exists.")
+        # 1. Xử lý mã Code bằng hàm Helper
+        final_code = _get_or_create_unique_code(db, promo_in.code)
         
-        new_promo = models.Promotion(**promo_in.model_dump())
+        # 2. Chuẩn bị dữ liệu Model
+        promo_data = promo_in.model_dump()
+        promo_data["code"] = final_code  # Ghi đè lại mã code (dù tự nhập hay tự sinh)
+        
+        new_promo = models.Promotion(**promo_data)
+        
+        # 3. Gọi Repository để lưu vào Database
         created_promo = promotion_repository.create_promotion(db, new_promo)
         db.commit()
         db.refresh(created_promo)
@@ -24,7 +58,6 @@ def create_promotion(db: Session, promo_in: schemas.PromotionCreate):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"System error during promotion creation: {str(e)}"
         )
-
 def get_promotions(db: Session):
     """Lấy danh sách tất cả mã giảm giá (Read-only, không cần Transaction)"""
     return promotion_repository.get_all_promotions(db)

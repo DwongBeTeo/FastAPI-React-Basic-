@@ -9,7 +9,6 @@ from services import admin_promotion_service
 
 # routers/admin/admin_promotion
 router = APIRouter(
-    prefix="/admin/promotions",
     tags=["Admin Promotions"]
 )
 

@@ -13,6 +13,12 @@ export const API_ENDPOINTS = {
         ADD_PRODUCT: '/admin/products/',
         UPDATE_PRODUCT: (id) => `/admin/products/${id}`,
         DELETE_PRODUCT: (id) => `/admin/products/${id}`,
+        PROMOTIONS: {
+            LIST: '/admin/promotions/',
+            CREATE: '/admin/promotions/',
+            UPDATE: (id) => `/admin/promotions/${id}`,
+            DELETE: (id) => `/admin/promotions/${id}`
+        },
     },
     // === ADMIN: REQUEST MANAGEMENT ===
     ADMIN_REQUEST: {

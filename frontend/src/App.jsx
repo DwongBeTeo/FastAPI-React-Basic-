@@ -13,9 +13,11 @@ import ProductDataAdmin from './pages/admin/ProductDataAdmin';
 import UserDashboardPage from './pages/user/access/UserDashboardPage';
 import NotFound from './pages/NotFound';
 import ProductDetailPage from './pages/user/product/ProductDetailPage';
+import PromotionPage from './pages/admin/promotion/PromotionPage';
 
 const App = () => {
   return (
+  <div id="app-wrapper" className="w-full min-h-screen">
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
@@ -37,10 +39,12 @@ const App = () => {
             <Route path="/admin/products" element={<ProductAdmin />} /> 
             <Route path="/admin/requests" element={<RequestAdminPage />} />
             <Route path="/admin/product-data" element={<ProductDataAdmin />} />
+            <Route path="/admin/promotions" element={<PromotionPage />} />
         </Route>
 
       </Route>
     </Routes>
+  </div>
   );
 };
 export default App;

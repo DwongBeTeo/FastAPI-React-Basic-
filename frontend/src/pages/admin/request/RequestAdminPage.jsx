@@ -35,68 +35,82 @@ const RequestAdminPage = () => {
     };
 
     return (
-        <div className="max-w-6xl mx-auto p-6">
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold">Review Data Request</h1>
+        <div className="max-w-6xl mx-auto p-6 text-slate-300">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+                <h1 className="text-2xl font-bold text-white">Review Data Request</h1>
                 <select 
                     value={filter} 
                     onChange={(e) => setFilter(e.target.value)}
-                    className="border p-2 rounded-lg outline-none"
+                    className="border border-slate-700 bg-[#0B1121] text-white p-2.5 rounded-lg outline-none focus:border-[#4ade80] transition-colors min-w-[150px]"
                 >
-                    <option value="">All</option>
-                    <option value="PENDING">Pending</option>
-                    <option value="APPROVED">Approved</option>
-                    <option value="REJECTED">Rejected</option>
+                    <option value="" className="bg-[#111827]">All Status</option>
+                    <option value="PENDING" className="bg-[#111827]">Pending</option>
+                    <option value="APPROVED" className="bg-[#111827]">Approved</option>
+                    <option value="REJECTED" className="bg-[#111827]">Rejected</option>
                 </select>
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+            <div className="bg-[#111827] rounded-xl shadow-lg border border-slate-800 overflow-hidden">
                 <table className="w-full text-sm text-left">
-                    <thead className="bg-gray-50 border-b text-gray-500 uppercase">
+                    <thead className="bg-[#0f172a] border-b border-slate-800 text-slate-400 uppercase text-xs tracking-wider">
                         <tr>
                             <th className="px-6 py-4">Code</th>
                             <th className="px-6 py-4">User ID</th>
                             <th className="px-6 py-4">Status</th>
                             <th className="px-6 py-4">Items</th>
-                            {/* CỘT MỚI: Hiển thị giá tiền */}
                             <th className="px-6 py-4 text-right">Total Amount</th>
                             <th className="px-6 py-4 text-right">Action</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100">
-                        {requests.map(req => (
-                            <tr key={req.id} className="hover:bg-gray-50">
-                                <td className="px-6 py-4 font-mono text-gray-900">{req.reference_code}</td>
-                                <td className="px-6 py-4">ID: {req.user_id}</td>
-                                <td className="px-6 py-4">
-                                    <span className={`px-2.5 py-1 rounded-md text-xs font-bold 
-                                        ${req.status === 'APPROVED' ? 'bg-green-100 text-green-700' : 
-                                          req.status === 'REJECTED' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}`}
-                                    >
-                                        {req.status}
-                                    </span>
-                                </td>
-                                <td className="px-6 py-4">{req.items?.length || 0} product(s)</td>
-                                
-                                {/* CỘT MỚI: In ra tổng tiền của request này */}
-                                <td className="px-6 py-4 text-right font-bold text-blue-600">
-                                    ${req.total_amount ? req.total_amount.toLocaleString('en-US') : '0'}
-                                </td>
-
-                                <td className="px-6 py-4 text-right">
-                                    {req.status === 'PENDING' && (
-                                        <div className="flex justify-end gap-2">
-                                            <button onClick={() => handleAction(req.id, 'APPROVE')} className="p-2 text-green-600 hover:bg-green-100 rounded" title="Approve">
-                                                <CheckCircle size={18}/>
-                                            </button>
-                                            <button onClick={() => handleAction(req.id, 'REJECT')} className="p-2 text-red-600 hover:bg-red-100 rounded" title="Reject">
-                                                <XCircle size={18}/>
-                                            </button>
-                                        </div>
-                                    )}
+                    <tbody className="divide-y divide-slate-800/50">
+                        {requests.length === 0 ? (
+                            <tr>
+                                <td colSpan="6" className="px-6 py-12 text-center text-slate-500 bg-[#0B1121]/50">
+                                    No requests found.
                                 </td>
                             </tr>
-                        ))}
+                        ) : (
+                            requests.map(req => (
+                                <tr key={req.id} className="hover:bg-slate-800/30 transition-colors">
+                                    <td className="px-6 py-4 font-mono font-medium text-white">{req.reference_code}</td>
+                                    <td className="px-6 py-4 font-mono text-slate-400">ID: {req.user_id}</td>
+                                    <td className="px-6 py-4">
+                                        <span className={`px-3 py-1.5 rounded text-xs font-bold uppercase tracking-wider
+                                            ${req.status === 'APPROVED' ? 'bg-[#064e3b]/60 text-[#4ade80] border border-[#064e3b]' : 
+                                              req.status === 'REJECTED' ? 'bg-red-900/30 text-red-400 border border-red-800' : 'bg-yellow-900/30 text-yellow-400 border border-yellow-800'}`}
+                                        >
+                                            {req.status}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4 text-slate-300">{req.items?.length || 0} product(s)</td>
+                                    
+                                    <td className="px-6 py-4 text-right font-bold font-mono text-[#4ade80]">
+                                        ${req.total_amount ? req.total_amount.toLocaleString('en-US') : '0'}
+                                    </td>
+
+                                    <td className="px-6 py-4 text-right">
+                                        {req.status === 'PENDING' && (
+                                            <div className="flex justify-end gap-3">
+                                                <button 
+                                                    onClick={() => handleAction(req.id, 'APPROVE')} 
+                                                    className="p-2 text-[#4ade80] hover:bg-[#064e3b]/50 hover:text-white rounded-lg transition-colors border border-transparent hover:border-[#4ade80]/50" 
+                                                    title="Approve"
+                                                >
+                                                    <CheckCircle size={18}/>
+                                                </button>
+                                                <button 
+                                                    onClick={() => handleAction(req.id, 'REJECT')} 
+                                                    className="p-2 text-red-400 hover:bg-red-900/50 hover:text-white rounded-lg transition-colors border border-transparent hover:border-red-500/50" 
+                                                    title="Reject"
+                                                >
+                                                    <XCircle size={18}/>
+                                                </button>
+                                            </div>
+                                        )}
+                                    </td>
+                                </tr>
+                            ))
+                        )}
                     </tbody>
                 </table>
             </div>

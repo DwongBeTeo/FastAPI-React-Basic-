@@ -14,8 +14,8 @@ router = APIRouter(
 def create_product(product: schemas.ProductCreate, db: Session = Depends(get_db)):
     return product_service.create_product(db, product)
 
-@router.get("/", response_model=list[schemas.ProductResponse])
-def read_all_products(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+@router.get("/", response_model=schemas.PaginatedProductResponse)
+def read_all_products(skip: int = 0, limit: int = 6, db: Session = Depends(get_db)):
     return product_service.get_products(db, skip, limit)
 
 @router.put("/{product_id}", response_model=schemas.ProductResponse)

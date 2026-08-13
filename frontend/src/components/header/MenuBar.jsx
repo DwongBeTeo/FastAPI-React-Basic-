@@ -17,10 +17,10 @@ const MenuBar = () => {
                         <Link to="/products" className="text-[#c6c6cd] hover:text-[#d3e4fe] font-medium transition-colors">
                             Product
                         </Link>
-                        <Link to="/services" className="text-[#c6c6cd] hover:text-[#d3e4fe] font-medium transition-colors">
+                        <Link to="/" className="text-[#c6c6cd] hover:text-[#d3e4fe] font-medium transition-colors">
                             Services
                         </Link>
-                        <Link to="/about" className="text-[#c6c6cd] hover:text-[#d3e4fe] font-medium transition-colors">
+                        <Link to="/" className="text-[#c6c6cd] hover:text-[#d3e4fe] font-medium transition-colors">
                             About Us
                         </Link>
                     </nav>

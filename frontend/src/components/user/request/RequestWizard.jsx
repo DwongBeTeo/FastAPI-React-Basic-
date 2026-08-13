@@ -85,12 +85,16 @@ const RequestWizard = ({ onSuccess, onCancel, initialProduct = null }) => {
         if (type === 'HISTORICAL' && item.historical_selected) {
             const months = calculateMonths(item.historical_from, item.historical_to);
             if (months <= 0) return 0;
-            let totalBase = basePrice * months;
-            return totalBase;
+            return basePrice * months;
         } 
         
         if (type === 'ONGOING' && item.ongoing_selected) {
-            return basePrice; // Đặt cọc 1 tháng
+            // ĐÃ SỬA: Nếu có chọn End Date thì tính theo số tháng, nếu để trống thì thu 1 tháng
+            if (item.ongoing_to) {
+                const months = calculateMonths(item.ongoing_from, item.ongoing_to);
+                return basePrice * (months > 0 ? months : 1);
+            }
+            return basePrice; 
         }
         
         return 0;

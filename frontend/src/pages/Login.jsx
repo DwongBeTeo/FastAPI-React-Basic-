@@ -61,39 +61,39 @@ const Login = () => {
     };
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-gray-100">
-            <div className="w-full max-w-md p-8 space-y-6 bg-white rounded shadow-md">
-                <h2 className="text-2xl font-bold text-center text-gray-800">Log in</h2>
+        <div className="flex items-center justify-center min-h-screen text-slate-300">
+            <div className="w-full max-w-md p-8 space-y-6 bg-[#111827] rounded-2xl shadow-xl shadow-black/50 border border-slate-800">
+                <h2 className="text-2xl font-bold text-center text-white">Log in</h2>
                 
                 {errorMsg && (
-                    <div className="p-3 text-sm text-red-700 bg-red-100 rounded">
+                    <div className="p-3 text-sm text-red-400 bg-red-900/30 rounded-lg border border-red-800 text-center font-medium">
                         {errorMsg}
                     </div>
                 )}
 
-                <form className="space-y-4" onSubmit={handleLogin}>
+                <form className="space-y-5" onSubmit={handleLogin}>
                     <div>
-                        <label className="block mb-1 text-sm font-medium text-gray-700">
-                            Email (Email)
+                        <label className="block mb-1.5 text-sm font-bold text-slate-400">
+                            Email
                         </label>
                         <input
-                            type="text"
+                            type="email"
                             required
-                            className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            placeholder="Your Email"
+                            className="w-full px-4 py-2.5 bg-[#0B1121] border border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4ade80] focus:border-[#4ade80] text-sm text-white transition-colors placeholder-slate-600"
+                            placeholder="you@example.com"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                         />
                     </div>
 
                     <div>
-                        <label className="block mb-1 text-sm font-medium text-gray-700">
+                        <label className="block mb-1.5 text-sm font-bold text-slate-400">
                             Password
                         </label>
                         <input
                             type="password"
                             required
-                            className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-4 py-2.5 bg-[#0B1121] border border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4ade80] focus:border-[#4ade80] text-sm text-white transition-colors placeholder-slate-600"
                             placeholder="••••••••"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
@@ -103,12 +103,12 @@ const Login = () => {
                     <button
                         type="submit"
                         disabled={isLoading}
-                        className={`w-full px-4 py-2 text-white bg-blue-600 rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
+                        className={`w-full flex justify-center items-center gap-2 px-4 py-2.5 text-slate-900 font-bold bg-[#4ade80] rounded-lg hover:bg-[#22c55e] focus:outline-none focus:ring-2 focus:ring-[#4ade80] focus:ring-offset-2 focus:ring-offset-[#111827] shadow-lg shadow-green-900/20 transition-colors ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
                     >
                         {isLoading ? (
                                 <>
-                                    <LoaderCircle className="animate-spin w-5 h-5"/>
-                                    Still login...
+                                    <LoaderCircle className="animate-spin w-5 h-5 text-slate-900"/>
+                                    Logging in...
                                 </>
                             ): (
                                 "Login"
@@ -117,10 +117,15 @@ const Login = () => {
                 </form>
 
                 {/* Regis redirect link */}
-                <div className="text-center text-sm">
-                    <span className="text-gray-600">Don't have an account? </span>
-                    <Link to="/register" className="font-medium text-blue-600 hover:text-blue-500">
+                <div className="text-center text-sm pt-2 border-t border-slate-800">
+                    <span className="text-slate-500">Don't have an account? </span>
+                    <Link to="/register" className="font-semibold text-[#4ade80] hover:text-[#22c55e] transition-colors">
                         Register here
+                    </Link>
+                </div>
+                <div className="text-center text-sm pt-2 border-t border-slate-800">
+                    <Link to="/" className="font-semibold text-[#4ade80] hover:text-[#22c55e] transition-colors">
+                        Back to HomePage
                     </Link>
                 </div>
             </div>

@@ -78,17 +78,17 @@ const ProductAdmin = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 p-6">
+        <div className="min-h-screen p-6 text-slate-300">
             <div className="max-w-6xl mx-auto">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-900">Product Management</h1>
-                        <p className="text-gray-500 text-sm mt-1">Add,edit,delete product</p>
+                        <h1 className="text-2xl font-bold text-white">Product Management</h1>
+                        <p className="text-slate-400 text-sm mt-1">Add, edit, delete product</p>
                     </div>
                     
                     <button 
                         onClick={handleOpenAddModal}
-                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-sm transition-all font-medium"
+                        className="flex items-center gap-2 px-5 py-2.5 bg-[#4ade80] text-slate-900 rounded-lg hover:bg-[#22c55e] shadow-lg shadow-green-900/20 transition-all font-bold"
                     >
                         <Plus size={18} />
                         <span>Add product</span>
@@ -96,7 +96,7 @@ const ProductAdmin = () => {
                 </div>
 
                 {loading ? (
-                    <div className="text-center py-12 text-gray-500">Loading data...</div>
+                    <div className="text-center py-12 text-slate-500">Loading data...</div>
                 ) : (
                     <ProductList 
                         products={products} 
@@ -109,8 +109,8 @@ const ProductAdmin = () => {
                     isOpen={openModal}
                     onClose={handleCloseModal}
                     title={modalType === 'ADD' ? 'Add new product' : 'Edit product'}
-                    // fitContent={true}
                 >
+                    
                     <AddProductForm 
                         onSubmit={handleSubmitProduct} 
                         onCancel={handleCloseModal}

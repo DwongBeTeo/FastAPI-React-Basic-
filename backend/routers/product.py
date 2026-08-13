@@ -13,10 +13,10 @@ router = APIRouter(
     tags=["User Products"]
 )
 
-@router.get("/", response_model=list[schemas.ProductResponse])
+@router.get("/", response_model=schemas.PaginatedProductResponse)
 def read_available_products(
     skip: int = 0, 
-    limit: int = 10, 
+    limit: int = 6,
     min_price: Optional[int] = Query(None, description="min_price"),
     max_price: Optional[int] = Query(None, description="max_price"),
     db: Session = Depends(get_db)
