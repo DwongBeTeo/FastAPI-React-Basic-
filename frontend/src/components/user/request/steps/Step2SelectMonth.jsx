@@ -1,6 +1,8 @@
 // src/components/user/request/steps/Step2SelectMonth.jsx
 import React from 'react';
 import { Calendar, Info, Trash2, Check } from 'lucide-react';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 
 const Step2SelectMonth = ({ 
     cartItems, 
@@ -27,22 +29,12 @@ const Step2SelectMonth = ({
                 const minMonth = item.available_from ? item.available_from.substring(0, 7) : undefined;
                 const maxMonth = item.available_to ? item.available_to.substring(0, 7) : undefined;
 
-                const displayHistFrom = item.historical_from ? `${item.historical_from}-01` : '';
-                const displayHistTo = item.historical_to ? `${item.historical_to}-01` : '';
-                const displayOngoFrom = item.ongoing_from ? `${item.ongoing_from}-01` : '';
-                const displayOngoTo = item.ongoing_to ? `${item.ongoing_to}-01` : '';
-                
-                // ==========================================
                 // LƯỚI LỌC 1: HISTORICAL DATA 
-                // ==========================================
-                const displayHistMinDate = minMonth ? `${minMonth}-01` : undefined;
                 let actualHistMaxMonth = currentMonthStr; 
                 if (maxMonth && maxMonth < currentMonthStr) {
                     actualHistMaxMonth = maxMonth;
                 }
-                const displayHistMaxDate = `${actualHistMaxMonth}-01`;
-                const histMinToDate = item.historical_from ? `${item.historical_from}-01` : displayHistMinDate;
-
+                
                 const isHistFromInvalid = item.historical_from && (
                     (minMonth && item.historical_from < minMonth) || 
                     (item.historical_from > currentMonthStr)
@@ -51,20 +43,13 @@ const Step2SelectMonth = ({
                     item.historical_to > actualHistMaxMonth || 
                     (item.historical_from && item.historical_to < item.historical_from)
                 );
-
-                // ==========================================
+                
                 // LƯỚI LỌC 2: ONGOING SUBSCRIPTION 
-                // ==========================================
-                // --- SỬA Ở ĐÂY: Ongoing phải bắt đầu từ Tháng tiếp theo ---
                 let actualOngoMinMonth = nextMonthStr;
                 if (minMonth && minMonth > nextMonthStr) {
                     actualOngoMinMonth = minMonth;
                 }
-                const displayOngoMinDate = `${actualOngoMinMonth}-01`;
-                const displayOngoMaxDate = maxMonth ? `${maxMonth}-01` : undefined;
                 
-                const ongoMinToDate = item.ongoing_from ? `${item.ongoing_from}-01` : displayOngoMinDate;
-
                 const isOngoFromInvalid = item.ongoing_from && (
                     item.ongoing_from < actualOngoMinMonth || 
                     (maxMonth && item.ongoing_from > maxMonth)
@@ -124,28 +109,38 @@ const Step2SelectMonth = ({
                             {item.ongoing_selected && (
                                 <div className="p-5 pt-0 border-t border-slate-800/50 mt-2">
                                     <div className="flex flex-col md:flex-row gap-6 mt-4 items-start">
+                                        
+                                        {/* ONGOING START MONTH */}
                                         <div className="w-full md:w-1/2">
-                                            <label className="flex items-center gap-2 text-sm text-slate-400 mb-2">Start Date</label>
+                                            <label className="flex items-center gap-2 text-sm text-slate-400 mb-2">Start Month</label>
                                             <div className={`flex items-center border rounded px-3 py-2.5 transition-colors ${isOngoFromInvalid ? 'border-red-500 bg-red-900/10' : 'border-slate-700 bg-[#0B1121] focus-within:border-[#3b82f6]'}`}>
                                                 <Calendar size={16} className="text-slate-500 mr-2 shrink-0"/>
-                                                <input 
-                                                    type="date" 
-                                                    value={displayOngoFrom}
-                                                    min={displayOngoMinDate} // CHẶN LỊCH DƯỚI THÁNG TIẾP THEO
-                                                    max={displayOngoMaxDate}
-                                                    onChange={(e) => {
-                                                        const monthVal = e.target.value ? e.target.value.substring(0, 7) : '';
-                                                        handleUpdateConfig(index, 'ongoing_from', monthVal);
+                                                <DatePicker
+                                                    selected={item.ongoing_from ? new Date(`${item.ongoing_from}-01T00:00:00`) : null}
+                                                    onChange={(date) => {
+                                                        if (date) {
+                                                            const monthVal = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                                                            handleUpdateConfig(index, 'ongoing_from', monthVal);
+                                                        } else {
+                                                            handleUpdateConfig(index, 'ongoing_from', '');
+                                                        }
                                                     }}
-                                                    className="w-full bg-transparent outline-none text-sm text-white [&::-webkit-calendar-picker-indicator]:filter-[invert(1)]"
+                                                    dateFormat="yyyy-MM"
+                                                    showMonthYearPicker
+                                                    minDate={actualOngoMinMonth ? new Date(`${actualOngoMinMonth}-01T00:00:00`) : null}
+                                                    maxDate={maxMonth ? new Date(`${maxMonth}-01T00:00:00`) : null}
+                                                    placeholderText="YYYY-MM"
+                                                    className="w-full bg-transparent outline-none text-sm text-white cursor-pointer"
+                                                    wrapperClassName="w-full" 
                                                 />
                                             </div>
                                             {isOngoFromInvalid && <p className="text-red-400 text-xs mt-1.5">Ongoing subscription must start from {actualOngoMinMonth} or later.</p>}
                                         </div>
 
+                                        {/* ONGOING END MONTH */}
                                         <div className="w-full md:w-1/2">
                                             <label className="flex justify-between items-center text-sm text-slate-400 mb-2">
-                                                <span>End Date <span className="italic opacity-60">(Optional)</span></span>
+                                                <span>End Month <span className="italic opacity-60">(Optional)</span></span>
                                                 {item.ongoing_to && (
                                                     <button 
                                                         onClick={() => handleUpdateConfig(index, 'ongoing_to', '')}
@@ -157,20 +152,26 @@ const Step2SelectMonth = ({
                                             </label>
                                             <div className={`flex items-center border rounded px-3 py-2.5 transition-colors ${isOngoToInvalid ? 'border-red-500 bg-red-900/10' : 'border-slate-700 bg-[#0B1121] focus-within:border-[#3b82f6]'}`}>
                                                 <Calendar size={16} className="text-slate-500 mr-2 shrink-0"/>
-                                                <input 
-                                                    type="date" 
-                                                    value={displayOngoTo}
-                                                    min={ongoMinToDate}
-                                                    max={displayOngoMaxDate}
-                                                    onChange={(e) => {
-                                                        const monthVal = e.target.value ? e.target.value.substring(0, 7) : '';
-                                                        handleUpdateConfig(index, 'ongoing_to', monthVal);
+                                                <DatePicker
+                                                    selected={item.ongoing_to ? new Date(`${item.ongoing_to}-01T00:00:00`) : null}
+                                                    onChange={(date) => {
+                                                        if (date) {
+                                                            const monthVal = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                                                            handleUpdateConfig(index, 'ongoing_to', monthVal);
+                                                        } else {
+                                                            handleUpdateConfig(index, 'ongoing_to', '');
+                                                        }
                                                     }}
-                                                    placeholder="Leave blank for ongoing"
-                                                    className={`w-full bg-transparent outline-none text-sm [&::-webkit-calendar-picker-indicator]:filter-[invert(1)] ${!item.ongoing_to ? 'text-slate-500' : 'text-white'}`}
+                                                    dateFormat="yyyy-MM"
+                                                    showMonthYearPicker
+                                                    minDate={item.ongoing_from ? new Date(`${item.ongoing_from}-01T00:00:00`) : (actualOngoMinMonth ? new Date(`${actualOngoMinMonth}-01T00:00:00`) : null)}
+                                                    maxDate={maxMonth ? new Date(`${maxMonth}-01T00:00:00`) : null}
+                                                    placeholderText="Leave blank for ongoing"
+                                                    className={`w-full bg-transparent outline-none text-sm cursor-pointer ${!item.ongoing_to ? 'text-slate-500' : 'text-white'}`}
+                                                    wrapperClassName="w-full" 
                                                 />
                                             </div>
-                                            {isOngoToInvalid && <p className="text-red-400 text-xs mt-1.5">End date must be after start date.</p>}
+                                            {isOngoToInvalid && <p className="text-red-400 text-xs mt-1.5">End month must be after start month.</p>}
                                         </div>
                                     </div>
                                 </div>
@@ -202,38 +203,56 @@ const Step2SelectMonth = ({
                                     </div>
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                                        
+                                        {/* HISTORICAL START MONTH */}
                                         <div>
-                                            <label className="flex items-center gap-2 text-sm text-slate-400 mb-2">Start Date</label>
+                                            <label className="flex items-center gap-2 text-sm text-slate-400 mb-2">Start Month</label>
                                             <div className={`flex items-center border rounded px-3 py-2.5 transition-colors ${isHistFromInvalid ? 'border-red-500 bg-red-900/10' : 'border-slate-700 bg-[#0B1121] focus-within:border-[#3b82f6]'}`}>
                                                 <Calendar size={16} className="text-slate-500 mr-2 shrink-0"/>
-                                                <input 
-                                                    type="date" 
-                                                    value={displayHistFrom}
-                                                    min={displayHistMinDate}
-                                                    max={displayHistMaxDate}
-                                                    onChange={(e) => {
-                                                        const monthVal = e.target.value ? e.target.value.substring(0, 7) : '';
-                                                        handleUpdateConfig(index, 'historical_from', monthVal);
+                                                <DatePicker
+                                                    selected={item.historical_from ? new Date(`${item.historical_from}-01T00:00:00`) : null}
+                                                    onChange={(date) => {
+                                                        if (date) {
+                                                            const monthVal = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                                                            handleUpdateConfig(index, 'historical_from', monthVal);
+                                                        } else {
+                                                            handleUpdateConfig(index, 'historical_from', '');
+                                                        }
                                                     }}
-                                                    className="w-full bg-transparent outline-none text-sm text-white [&::-webkit-calendar-picker-indicator]:filter-[invert(1)]"
+                                                    dateFormat="yyyy-MM"
+                                                    showMonthYearPicker
+                                                    minDate={minMonth ? new Date(`${minMonth}-01T00:00:00`) : null}
+                                                    maxDate={actualHistMaxMonth ? new Date(`${actualHistMaxMonth}-01T00:00:00`) : null}
+                                                    placeholderText="YYYY-MM"
+                                                    className="w-full bg-transparent outline-none text-sm text-white cursor-pointer"
+                                                    wrapperClassName="w-full" 
                                                 />
                                             </div>
                                             {isHistFromInvalid && <p className="text-red-400 text-xs mt-1.5 leading-snug">Cannot start after {actualHistMaxMonth}.</p>}
                                         </div>
+
+                                        {/* HISTORICAL END MONTH */}
                                         <div>
-                                            <label className="flex items-center gap-2 text-sm text-slate-400 mb-2">End Date</label>
+                                            <label className="flex items-center gap-2 text-sm text-slate-400 mb-2">End Month</label>
                                             <div className={`flex items-center border rounded px-3 py-2.5 transition-colors ${isHistToInvalid ? 'border-red-500 bg-red-900/10' : 'border-slate-700 bg-[#0B1121] focus-within:border-[#3b82f6]'}`}>
                                                 <Calendar size={16} className="text-slate-500 mr-2 shrink-0"/>
-                                                <input 
-                                                    type="date" 
-                                                    value={displayHistTo}
-                                                    min={histMinToDate}
-                                                    max={displayHistMaxDate}
-                                                    onChange={(e) => {
-                                                        const monthVal = e.target.value ? e.target.value.substring(0, 7) : '';
-                                                        handleUpdateConfig(index, 'historical_to', monthVal);
+                                                <DatePicker
+                                                    selected={item.historical_to ? new Date(`${item.historical_to}-01T00:00:00`) : null}
+                                                    onChange={(date) => {
+                                                        if (date) {
+                                                            const monthVal = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                                                            handleUpdateConfig(index, 'historical_to', monthVal);
+                                                        } else {
+                                                            handleUpdateConfig(index, 'historical_to', '');
+                                                        }
                                                     }}
-                                                    className="w-full bg-transparent outline-none text-sm text-white [&::-webkit-calendar-picker-indicator]:filter-[invert(1)]"
+                                                    dateFormat="yyyy-MM"
+                                                    showMonthYearPicker
+                                                    minDate={item.historical_from ? new Date(`${item.historical_from}-01T00:00:00`) : (minMonth ? new Date(`${minMonth}-01T00:00:00`) : null)}
+                                                    maxDate={actualHistMaxMonth ? new Date(`${actualHistMaxMonth}-01T00:00:00`) : null}
+                                                    placeholderText="YYYY-MM"
+                                                    className="w-full bg-transparent outline-none text-sm text-white cursor-pointer"
+                                                    wrapperClassName="w-full" 
                                                 />
                                             </div>
                                             {isHistToInvalid && <p className="text-red-400 text-xs mt-1.5 leading-snug">Historical data cannot exceed {actualHistMaxMonth}.</p>}

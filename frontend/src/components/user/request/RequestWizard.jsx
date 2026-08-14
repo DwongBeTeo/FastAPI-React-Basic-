@@ -31,7 +31,7 @@ const RequestWizard = ({ onSuccess, onCancel, initialProduct = null }) => {
                     axiosConfig.get(API_ENDPOINTS.USER_ACCESS.GET_MINE)
                 ]);
 
-                const activeProductsOnly = (prodRes || []).filter(p => p.is_active === true);
+                const activeProductsOnly = (prodRes.data || []).filter(p => p.is_active === true);
                 setProducts(activeProductsOnly);
 
                 const pIds = new Set();
@@ -213,7 +213,17 @@ const RequestWizard = ({ onSuccess, onCancel, initialProduct = null }) => {
             await axiosConfig.post(API_ENDPOINTS.USER_REQUEST.CREATE, payload);
             onSuccess(); 
         } catch (err) {
-            setError(err.response?.data?.detail || "Error while sending request.");
+            // --- THÊM MỚI: BẮT LỖI TỪ BACKEND Ở ĐÂY ---
+            const errorMessage = err.response?.data?.detail;
+            
+            if (errorMessage && errorMessage.includes("usage limit")) {
+                setError("Sorry! This promotion code has just run out of uses. Please remove it or choose another code.");
+                setPromotionCode(''); // Tự động xóa mã để user thấy giỏ hàng quay về giá gốc
+            } else if (errorMessage && errorMessage.includes("Order subtotal")) {
+                setError(errorMessage);
+            } else {
+                setError(errorMessage || "Error while sending request.");
+            }
         } finally {
             setIsSubmitting(false);
         }

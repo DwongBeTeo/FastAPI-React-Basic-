@@ -21,11 +21,11 @@ def create_data(
     """Admin thêm dữ liệu thực tế cho một Sản phẩm (Báo cáo/Tồn kho...)"""
     return admin_product_data_service.create_product_data(db, data_in)
 
-@router.get("/", response_model=List[ProductDataResponse])
+@router.get("/", response_model=schemas.PaginatedProductDataResponse)
 def read_all_data(
     product_id: Optional[int] = Query(None, description="Lọc theo ID Sản phẩm"),
     skip: int = 0, 
-    limit: int = 100, 
+    limit: int = 10, 
     db: Session = Depends(get_db),
     current_admin: models.User = Depends(auth.get_current_admin)
 ):

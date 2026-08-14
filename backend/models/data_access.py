@@ -39,7 +39,7 @@ class DataRequestItem(Base):
     to_date = Column(Date, nullable=True)
     request = relationship("DataRequest", back_populates="items")
 
-    # THÊM MỚI: Lưu lại số tháng và giá tiền thực tế áp dụng cho Item này
+    # Lưu lại số tháng và giá tiền thực tế áp dụng cho Item này
     calculated_months = Column(Integer, nullable=False, server_default=text("1"))
     applied_price = Column(Integer, nullable=False, server_default=text("0"))
 

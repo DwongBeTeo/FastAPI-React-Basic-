@@ -14,6 +14,7 @@ import UserDashboardPage from './pages/user/access/UserDashboardPage';
 import NotFound from './pages/NotFound';
 import ProductDetailPage from './pages/user/product/ProductDetailPage';
 import PromotionPage from './pages/admin/promotion/PromotionPage';
+import TestDate from './TestDate';
 
 const App = () => {
   return (
@@ -22,6 +23,8 @@ const App = () => {
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="not-found" element={<NotFound />} />
+      {/* <Route path="/test" element={<TestDate />} /> */}
+
 
       {/* Wrap in MainLayout */}
       <Route element={<MainLayout />}>

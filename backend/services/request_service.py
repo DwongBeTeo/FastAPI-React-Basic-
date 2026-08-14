@@ -48,7 +48,14 @@ def _validate_and_get_promotion(db: Session, promotion_code: str, current_date: 
         raise HTTPException(status_code=400, detail="Promotion code does not exist or is inactive.")
     if promotion.expiration_date and promotion.expiration_date < current_date:
         raise HTTPException(status_code=400, detail="Promotion code has expired.")
-        
+
+    # Chặn tại thời điểm chốt đơn
+    if promotion.quantity is not None and promotion.quantity <= 0:
+        raise HTTPException(
+            status_code=400, 
+            detail="This promotion code has reached its usage limit."
+        )
+    
     return promotion.id, promotion.discount_type, promotion.discount_value, promotion.min_order_value
 
 
@@ -68,7 +75,7 @@ def _process_request_item(
     current_month_start = get_start_of_month(current_date)
     current_month_end = get_end_of_month(current_date)
     
-    # THÊM MỚI: Tính ngày mùng 1 của tháng tiếp theo
+    # Tính ngày mùng 1 của tháng tiếp theo
     next_month_start = get_start_of_next_month(current_date) 
     
     std_from_date = get_start_of_month(item.from_date)
@@ -81,7 +88,7 @@ def _process_request_item(
     std_to_date = None
     total_months = 0
 
-    # LƯỚI LỌC 1: HISTORICAL DATA (Giữ nguyên)
+    # LƯỚI LỌC 1: HISTORICAL DATA
     if item.subscription_type == SubscriptionTypeEnum.HISTORICAL:
         if not item.to_date:
             raise HTTPException(status_code=400, detail=f"Historical data for '{product.name}' requires a 'to_date'.")
@@ -164,7 +171,7 @@ def _process_request_item(
     )
     return item_model, applied_price, base_price
 
-# 3. MAIN FUNCTION (HÀM ĐIỀU PHỐI CHÍNH)
+# 3. MAIN FUNCTION
 def create_request(db: Session, request_data: schemas.DataRequestCreate, user_id: int):
     try:
         current_date = datetime.now().date()
@@ -190,7 +197,6 @@ def create_request(db: Session, request_data: schemas.DataRequestCreate, user_id
             )
             new_items.append(item_model)
             total_request_price += item_price
-
             cart_subtotal += base_price
 
         # CHỐT CHẶN MIN ORDER VALUE SAU KHI ĐÃ CỘNG TỔNG
@@ -215,6 +221,25 @@ def create_request(db: Session, request_data: schemas.DataRequestCreate, user_id
         
         # 5. Lưu vào Database (Transaction)
         created_request = request_repository.create_request_with_items(db, new_request, new_items)
+
+        # ==========================================
+        # 6. SỬA LỖI TẠI ĐÂY: TRỪ SỐ LƯỢNG MÃ GIẢM GIÁ
+        # ==========================================
+        if promo_id:
+            # Query để lấy object promotion từ Database
+            promotion = promotion_repository.get_promotion_by_id(db, promo_id)
+            
+            # Nếu promotion giới hạn số lượng (không phải None)
+            if promotion and promotion.quantity is not None:
+                # Chốt chặn cuối cùng ngay trước khoảnh khắc lưu DB
+                if promotion.quantity <= 0:
+                    raise HTTPException(
+                        status_code=400, 
+                        detail="This promotion code has reached its usage limit during checkout."
+                    )
+                # THỰC THI TRỪ LƯỢT SỬ DỤNG
+                promotion.quantity -= 1
+        
         db.commit()
         db.refresh(created_request)
         return created_request
@@ -233,9 +258,9 @@ def get_my_requests(db: Session, user_id: int):
     return request_repository.get_requests_by_user_id(db, user_id)
 
 # ADMIN OPERATIONS
-def get_all_requests(db: Session, status: str = None):
+def get_all_requests(db: Session, status: str = None, skip: int = 0, limit: int = 10):
     """Retrieve all requests with optional status filtering."""
-    return request_repository.get_all_requests(db, status)
+    return request_repository.get_all_requests(db, status, skip, limit)
 
 def process_request(db: Session, request_id: int, admin_id: int, action: str):
     """Process a request (Approve/Reject)."""

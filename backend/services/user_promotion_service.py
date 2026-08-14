@@ -23,6 +23,13 @@ def check_promotion_code(db: Session, code: str, order_value: int | None = None)
     if promotion.expiration_date and promotion.expiration_date < current_date:
         raise HTTPException(status_code=400, detail="This promotion code has expired.")
 
+    # Chặn nếu số lượng đã về 0
+    if promotion.quantity is not None and promotion.quantity <= 0:
+        raise HTTPException(
+            status_code=400, 
+            detail="This promotion code has reached its usage limit."
+        )
+    
     # THÊM MỚI: Kiểm tra giá trị đơn hàng tối thiểu nếu Frontend có gửi lên
     if order_value is not None and order_value < promotion.min_order_value:
          raise HTTPException(

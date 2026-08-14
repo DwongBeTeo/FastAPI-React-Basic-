@@ -12,9 +12,9 @@ export default function Home() {
             try {
                 // Gọi API lấy danh sách sản phẩm, giới hạn 3 sản phẩm đầu tiên
                 const res = await axiosConfig.get(`${API_ENDPOINTS.USER.GET_AVAILABLE_PRODUCTS}?skip=0&limit=3`);
-                
+                const productList = res.data || []
                 // Lọc lấy các sản phẩm đang active
-                const activeProducts = (res || []).filter(p => p.is_active === true);
+                const activeProducts = productList.filter(p => p.is_active === true);
                 
                 // Cắt lấy tối đa 3 sản phẩm
                 setFeaturedProducts(activeProducts.slice(0, 3));

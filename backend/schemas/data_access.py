@@ -51,6 +51,10 @@ class DataRequestResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class PaginatedRequestResponse(BaseModel):
+    total: int
+    data: List[DataRequestResponse]
+
 # --- UserDataAccess ---
 class UserDataAccessResponse(BaseModel):
     id: int
@@ -73,6 +77,10 @@ class ProductDataResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+class PaginatedProductDataResponse(BaseModel):
+    total: int
+    data: List[ProductDataResponse]
 
 class ProductDataCreate(BaseModel):
     product_id: int

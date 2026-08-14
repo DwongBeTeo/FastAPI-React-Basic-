@@ -1,5 +1,5 @@
 // src/components/user/request/steps/Step3Confirm.jsx
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Tag, LoaderCircle } from 'lucide-react';
 import axiosConfig from '../../../../utils/axiosConfig';
 
@@ -36,6 +36,15 @@ const Step3Confirm = ({
         finalTotal = Math.max(0, cartTotalEstimate - discountAmount);
     }
 
+    // Reset lại giao diện khi Wizard xóa promotionCode ---
+    useEffect(() => {
+        if (promotionCode === '') {
+            setIsApplied(false);
+            setPromoDetails(null);
+            setPromoError('');
+        }
+    }, [promotionCode]);
+
     // 3. Hàm gọi API kiểm tra mã
     const handleApplyPromo = async () => {
         if (!promotionCode || promotionCode.trim() === '') return;
@@ -46,11 +55,11 @@ const Step3Confirm = ({
         setPromoDetails(null);
 
         try {
-            // Gọi API kiểm tra mã giảm giá
-            const response = await axiosConfig.get(`/promotions/check/${promotionCode.trim().toUpperCase()}`);
+            // Thêm tham số order_value vào API Request ---
+            const response = await axiosConfig.get(`/promotions/check/${promotionCode.trim().toUpperCase()}?order_value=${cartTotalEstimate}`);
             
             // Lưu dữ liệu vào state để tính toán
-            setPromoDetails(response);
+            setPromoDetails(response.data || response);
             setIsApplied(true);
         } catch (error) {
             setPromoError(error.response?.data?.detail || "Invalid or expired promotion code.");

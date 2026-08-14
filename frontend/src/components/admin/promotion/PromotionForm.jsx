@@ -11,6 +11,8 @@ const PromotionForm = ({ initialData, onSave, onCancel, isSubmitting }) => {
         discount_type: 'PERCENTAGE',
         discount_value: '',
         expiration_date: '',
+        min_order_value: '',
+        quantity: '',
         is_active: true
     });
 
@@ -22,6 +24,8 @@ const PromotionForm = ({ initialData, onSave, onCancel, isSubmitting }) => {
                 discount_type: initialData.discount_type || 'PERCENTAGE',
                 discount_value: initialData.discount_value || '',
                 expiration_date: initialData.expiration_date || '',
+                min_order_value: initialData.min_order_value || '',
+                quantity: initialData.quantity || '',
                 is_active: initialData.is_active !== undefined ? initialData.is_active : true
             });
         }
@@ -132,6 +136,38 @@ const PromotionForm = ({ initialData, onSave, onCancel, isSubmitting }) => {
                         className="w-full px-4 py-2.5 border border-slate-700 bg-[#0B1121] rounded-lg focus:border-[#4ade80] outline-none text-white [&::-webkit-calendar-picker-indicator]:filter-[invert(1)] transition-colors"
                     />
                     <p className="text-xs text-slate-500 mt-1">Leave blank if the code never expires.</p>
+                </div>
+
+                {/* Min Order Value */}
+                <div>
+                    <label className="block text-sm font-bold text-slate-400 mb-1.5">
+                        Min Order Value ($)
+                    </label>
+                    <input 
+                        type="number" 
+                        min="0"
+                        value={formData.min_order_value || 0}
+                        onChange={(e) => updateField('min_order_value', Number(e.target.value))}
+                        placeholder="0"
+                        className="w-full px-4 py-2.5 border border-slate-700 bg-[#0B1121] rounded-lg focus:border-[#4ade80] outline-none text-white transition-colors"
+                    />
+                    <p className="text-xs text-slate-500 mt-1">Leave at 0 if there is no minimum requirement.</p>
+                </div>
+
+                {/* Usage Limit (Quantity) */}
+                <div>
+                    <label className="block text-sm font-bold text-slate-400 mb-1.5">
+                        Usage Limit (Quantity)
+                    </label>
+                    <input 
+                        type="number" 
+                        min="1"
+                        value={formData.quantity !== null && formData.quantity !== undefined ? formData.quantity : ''}
+                        onChange={(e) => updateField('quantity', e.target.value === '' ? null : Number(e.target.value))}
+                        placeholder="Unlimited (Leave blank)"
+                        className="w-full px-4 py-2.5 border border-slate-700 bg-[#0B1121] rounded-lg focus:border-[#4ade80] outline-none text-white transition-colors"
+                    />
+                    <p className="text-xs text-slate-500 mt-1">Leave blank if the promotion has unlimited uses.</p>
                 </div>
 
                 {/* Status */}

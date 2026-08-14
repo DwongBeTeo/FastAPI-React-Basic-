@@ -14,9 +14,16 @@ def get_all_product_data(db: Session, product_id: int = None, skip: int = 0, lim
     
     if product_id:
         query = query.filter(models.ProductData.product_id == product_id)
-        
-    return query.order_by(models.ProductData.data_date.desc()).offset(skip).limit(limit).all()
-
+    # Đếm tổng số lượng (trước khi phân trang)
+    total_count = query.count()
+    
+    # Lấy dữ liệu của trang hiện tại
+    data = query.order_by(models.ProductData.data_date.desc()).offset(skip).limit(limit).all()
+    
+    return {
+        "total": total_count,
+        "data": data
+    }
 def get_product_data_by_id(db: Session, data_id: int):
     """Retrieve specific product data by its ID."""
     return db.query(models.ProductData).filter(models.ProductData.id == data_id).first()

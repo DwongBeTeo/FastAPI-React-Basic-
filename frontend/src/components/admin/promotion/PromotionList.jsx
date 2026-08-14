@@ -22,6 +22,8 @@ const PromotionList = ({ promotions, onEdit, onDelete }) => {
                             <th className="px-6 py-4 font-semibold">Value</th>
                             <th className="px-6 py-4 font-semibold">Status</th>
                             <th className="px-6 py-4 font-semibold">Expires On</th>
+                            <th className="px-6 py-4 font-semibold">Min Order ($)</th>
+                            <th className="px-6 py-4 font-semibold">Quantity Left</th>
                             <th className="px-6 py-4 font-semibold text-right">Actions</th>
                         </tr>
                     </thead>
@@ -65,6 +67,28 @@ const PromotionList = ({ promotions, onEdit, onDelete }) => {
                                     <td className="px-6 py-4 text-slate-400">
                                         {promo.expiration_date ? new Date(promo.expiration_date).toLocaleDateString() : <span className="text-slate-600 italic">Never expires</span>}
                                     </td>
+                                    
+                                    {/* Min_order_value */}
+                                    <td className="px-6 py-4 text-slate-300 font-mono">
+                                        {promo.min_order_value > 0 ? (
+                                            <span className="text-yellow-400 font-bold">${promo.min_order_value.toLocaleString()}</span>
+                                        ) : (
+                                            <span className="text-slate-500">Any</span>
+                                        )}
+                                    </td>
+
+                                    {/* quantity */}
+                                    <td className="px-6 py-4 font-mono">
+                                        {promo.quantity !== null && promo.quantity !== undefined ? (
+                                            <span className={`font-bold ${promo.quantity === 0 ? 'text-red-400' : 'text-slate-300'}`}>
+                                                {promo.quantity} {promo.quantity <= 0 && <span className="text-xs ml-1 font-sans text-red-500/80">(Sold out)</span>}
+                                            </span>
+                                        ) : (
+                                            <span className="text-slate-500 italic font-sans text-sm">Unlimited</span>
+                                        )}
+                                    </td>
+
+                                    {/* Actions */}
                                     <td className="px-6 py-4 text-right">
                                         <div className="flex justify-end gap-2">
                                             <button 

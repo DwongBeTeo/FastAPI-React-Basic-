@@ -22,6 +22,9 @@ class Promotion(Base):
 
     # Giá trị đơn hàng tối thiểu
     min_order_value = Column(Integer, nullable=False, server_default=text("0"))
+
+    # Số lượng mẫ giảm giá
+    quantity = Column(Integer, nullable=True)
     
     is_active = Column(Boolean, default=True)
     expiration_date = Column(Date, nullable=True)

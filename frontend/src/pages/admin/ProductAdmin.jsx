@@ -6,21 +6,33 @@ import { API_ENDPOINTS } from '../../utils/apiEndPoint';
 import axiosConfig from '../../utils/axiosConfig';
 import AddProductForm from '../../components/admin/product/AddProductForm';
 import { Modal } from '../../components/Modal'; 
+import Pagination from '../../components/common/Pagination';
 
 const ProductAdmin = () => {
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
+
+    // --- State Phân Trang ---
+    const [totalItems, setTotalItems] = useState(0);
+    const [currentPage, setCurrentPage] = useState(1);
+    const limit = 6;
 
     // State quản lý Modal
     const [openModal, setOpenModal] = useState(false);
     const [modalType, setModalType] = useState('ADD'); 
     const [selectedProduct, setSelectedProduct] = useState(null);
 
-    const fetchProducts = async () => {
+    const fetchProducts = async (page) => {
         try {
             setLoading(true);
-            const data = await axiosConfig.get(API_ENDPOINTS.ADMIN.GET_ALL_PRODUCTS);
-            setProducts(data);
+            const skip = (page - 1) * limit;
+
+            // Xây dựng URL kèm tham số phân trang
+            const data = await axiosConfig.get(`${API_ENDPOINTS.ADMIN.GET_ALL_PRODUCTS}?skip=${skip}&limit=${limit}`);
+            
+            // API mới sẽ trả về { total, data }
+            setProducts(data.data || []);
+            setTotalItems(data.total || 0);
         } catch (error) {
             console.error("Lỗi tải danh sách sản phẩm:", error);
         } finally {
@@ -28,9 +40,12 @@ const ProductAdmin = () => {
         }
     };
 
+    // Chạy lại khi chuyển trang
     useEffect(() => {
-        fetchProducts();
-    }, []);
+        fetchProducts(currentPage);
+    }, [currentPage]);
+
+    const totalPages = Math.ceil(totalItems / limit);
 
     const handleOpenAddModal = () => {
         setModalType('ADD');
@@ -57,7 +72,8 @@ const ProductAdmin = () => {
                 await axiosConfig.put(API_ENDPOINTS.ADMIN.UPDATE_PRODUCT(selectedProduct.id), formData);
             }
             
-            fetchProducts(); 
+            // Fetch lại trang hiện tại sau khi thêm/sửa
+            fetchProducts(currentPage); 
             handleCloseModal(); 
             return true; 
         } catch (error) {
@@ -71,7 +87,11 @@ const ProductAdmin = () => {
         
         try {
             await axiosConfig.delete(API_ENDPOINTS.ADMIN.DELETE_PRODUCT(productId));
-            fetchProducts(); 
+            
+            // Xóa xong có thể khiến trang hiện tại bị rỗng (nếu là item cuối). 
+            // Có thể tối ưu bằng cách check nếu data rỗng thì lùi về page trước, 
+            // nhưng tạm thời gọi lại fetchProducts(currentPage) là đủ an toàn.
+            fetchProducts(currentPage); 
         } catch (error) {
             console.error("Lỗi xóa sản phẩm:", error);
         }
@@ -79,11 +99,11 @@ const ProductAdmin = () => {
 
     return (
         <div className="min-h-screen p-6 text-slate-300">
-            <div className="max-w-6xl mx-auto">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+            <div className="max-w-6xl mx-auto flex flex-col h-full">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 shrink-0">
                     <div>
                         <h1 className="text-2xl font-bold text-white">Product Management</h1>
-                        <p className="text-slate-400 text-sm mt-1">Add, edit, delete product</p>
+                        <p className="text-slate-400 text-sm mt-1">Add, edit, delete product (Total: {totalItems})</p>
                     </div>
                     
                     <button 
@@ -96,13 +116,26 @@ const ProductAdmin = () => {
                 </div>
 
                 {loading ? (
-                    <div className="text-center py-12 text-slate-500">Loading data...</div>
+                    <div className="text-center py-12 text-slate-500 flex-1">Loading data...</div>
                 ) : (
-                    <ProductList 
-                        products={products} 
-                        onDelete={handleDeleteProduct} 
-                        onEdit={handleOpenEditModal} 
-                    />
+                    <div className="flex-1 flex flex-col">
+                        <ProductList 
+                            products={products} 
+                            onDelete={handleDeleteProduct} 
+                            onEdit={handleOpenEditModal} 
+                        />
+                        
+                        {/* --- COMPONENT PHÂN TRANG CHO ADMIN --- */}
+                        {totalPages > 1 && (
+                            <div className="mt-6 pb-6">
+                                <Pagination 
+                                    currentPage={currentPage}
+                                    totalPages={totalPages}
+                                    onPageChange={(page) => setCurrentPage(page)}
+                                />
+                            </div>
+                        )}
+                    </div>
                 )}
 
                 <Modal
@@ -110,7 +143,6 @@ const ProductAdmin = () => {
                     onClose={handleCloseModal}
                     title={modalType === 'ADD' ? 'Add new product' : 'Edit product'}
                 >
-                    
                     <AddProductForm 
                         onSubmit={handleSubmitProduct} 
                         onCancel={handleCloseModal}

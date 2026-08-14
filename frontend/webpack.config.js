@@ -17,6 +17,8 @@ module.exports = {
     historyApiFallback: true,
   },
   module: {
+    // TẮT CẢNH BÁO CỦA DATEPICKER
+    exprContextCritical: false,
     rules: [
       {
         test: /\.(js|jsx)$/,

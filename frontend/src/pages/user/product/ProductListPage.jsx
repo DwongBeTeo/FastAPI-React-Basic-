@@ -16,7 +16,7 @@ const ProductListPage = () => {
     // --- State Phân Trang ---
     const [totalItems, setTotalItems] = useState(0);
     const [currentPage, setCurrentPage] = useState(1);
-    const limit = 7; // 
+    const limit = 6; // 
 
     const [filters, setFilters] = useState({
         search: '',

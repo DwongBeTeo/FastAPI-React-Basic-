@@ -43,7 +43,7 @@ const UserDashboardPage = () => {
     // Handle successful request creation
     const handleFormSuccess = () => {
         setIsModalOpen(false);
-        setActiveTab('REQUESTS'); // Automatically switch to History tab so user can see the newly created request
+        setActiveTab('REQUESTS'); 
     };
 
     return (
@@ -63,11 +63,11 @@ const UserDashboardPage = () => {
                 </button>
             </div>
 
-            {/* TABS NAVIGATION */}
-            <div className="flex border-b border-slate-800 mb-6">
+            {/* TABS NAVIGATION - Đã sửa padding để thẳng lề trái hoàn hảo */}
+            <div className="flex gap-8 border-b border-slate-800 mb-6">
                 <button
                     onClick={() => setActiveTab('ACCESS')}
-                    className={`flex items-center gap-2 py-3 px-6 font-medium text-sm transition-colors border-b-2 ${
+                    className={`flex items-center gap-2 pb-3 font-medium text-sm transition-colors border-b-2 ${
                         activeTab === 'ACCESS' ? 'border-[#4ade80] text-[#4ade80]' : 'border-transparent text-slate-500 hover:text-slate-300 hover:border-slate-700'
                     }`}
                 >
@@ -75,7 +75,7 @@ const UserDashboardPage = () => {
                 </button>
                 <button
                     onClick={() => setActiveTab('REQUESTS')}
-                    className={`flex items-center gap-2 py-3 px-6 font-medium text-sm transition-colors border-b-2 ${
+                    className={`flex items-center gap-2 pb-3 font-medium text-sm transition-colors border-b-2 ${
                         activeTab === 'REQUESTS' ? 'border-[#4ade80] text-[#4ade80]' : 'border-transparent text-slate-500 hover:text-slate-300 hover:border-slate-700'
                     }`}
                 >
@@ -166,7 +166,6 @@ const UserDashboardPage = () => {
                 title="Access request process"
                 fitContent={true}
             >
-                {/* Force re-render Wizard when opening to clear old data */}
                 {isModalOpen && (
                     <RequestWizard 
                         onSuccess={handleFormSuccess} 

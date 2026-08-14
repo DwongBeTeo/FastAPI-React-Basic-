@@ -51,11 +51,21 @@ def get_requests_by_user_id(db: Session, user_id: int):
         models.DataRequest.user_id == user_id
     ).order_by(models.DataRequest.id.desc()).all()
 
-def get_all_requests(db: Session, status: str = None):
+def get_all_requests(db: Session, status: str = None, skip: int = 0, limit: int = 10):
     query = db.query(models.DataRequest)
     if status:
         query = query.filter(models.DataRequest.status == status.upper())
-    return query.order_by(models.DataRequest.id.desc()).all()
+    # Đếm tổng số lượng (trước khi phân trang)
+    total_count = query.count()
+    
+    # Lấy dữ liệu của trang hiện tại
+    requests = query.order_by(models.DataRequest.id.desc()).offset(skip).limit(limit).all()
+    
+    return {
+        "total": total_count,
+        "data": requests
+    }
+    # return query.order_by(models.DataRequest.id.desc()).all()
 
 def get_request_by_id(db: Session, request_id: int):
     return db.query(models.DataRequest).filter(models.DataRequest.id == request_id).first()

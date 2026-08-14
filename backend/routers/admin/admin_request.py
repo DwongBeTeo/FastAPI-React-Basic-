@@ -11,14 +11,16 @@ router = APIRouter(
     tags=["Admin Data Requests"]
 )
 
-@router.get("/", response_model=List[schemas.DataRequestResponse])
+@router.get("/", response_model= schemas.PaginatedRequestResponse)
 def get_all_requests(
     status: Optional[str] = Query(None, description="Lọc theo PENDING, APPROVED, REJECTED"),
+    skip: int = 0,
+    limit: int = 10,
     db: Session = Depends(get_db),
     # Only ADMIN use this dependence
     current_admin: models.User = Depends(auth.get_current_admin)
 ):
-    return request_service.get_all_requests(db, status)
+    return request_service.get_all_requests(db, status, skip, limit)
 
 @router.put("/{request_id}/approve", response_model=schemas.DataRequestResponse)
 def approve_request(
