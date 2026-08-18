@@ -36,15 +36,4 @@ def fetch_actual_data(
     Lấy dữ liệu thật của Product.
     Hệ thống sẽ tự động kiểm tra vé và chặn dữ liệu ngoài phạm vi ngày cho phép.
     """
-
-    # Ghi log lại lịch sử truy xuất
-    bg_tasks.add_task(
-        write_audit_log,
-        db=db,
-        actor_id=current_user.id,
-        action="VIEW_DATA",
-        entity_type="PRODUCT",
-        entity_id=product_id,
-        payload={"accessed_endpoint": f"/data/{product_id}"}
-    )
-    return access_service.get_product_data(db, current_user.id, product_id)
+    return access_service.get_product_data(db, current_user.id, product_id, bg_tasks)

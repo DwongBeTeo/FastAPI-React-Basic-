@@ -5,6 +5,9 @@ from sqlalchemy.orm import relationship
 # models/product.py
 class Product(Base):
     __tablename__ = "products"
+
+    # Tracking Product table(Audit Log)
+    __versioned__ = {}
     
     id = Column(Integer, primary_key=True, index=True)
     code = Column(String, unique=True, index=True, nullable=False)
@@ -18,7 +21,7 @@ class Product(Base):
 # TEST QUYỀN TRUY CẬP
 class ProductData(Base):
     __tablename__ = "product_data"
-    
+    __versioned__ = {}
     id = Column(Integer, primary_key=True, index=True)
     product_id = Column(Integer, ForeignKey("products.id"), nullable=False)
     data_date = Column(Date, nullable=False)

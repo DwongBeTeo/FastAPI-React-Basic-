@@ -7,6 +7,7 @@ import models, auth, schemas
 from database import get_db
 from schemas.data_access import ProductDataCreate, ProductDataUpdate, ProductDataResponse
 from services import admin_product_data_service
+from dependencies import get_admin_audit_db
 
 router = APIRouter(
     tags=["Admin Product Data"]
@@ -15,7 +16,7 @@ router = APIRouter(
 @router.post("/", response_model=ProductDataResponse)
 def create_data(
     data_in: ProductDataCreate, 
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_admin_audit_db),
     current_admin: models.User = Depends(auth.get_current_admin)
 ):
     """Admin thêm dữ liệu thực tế cho một Sản phẩm (Báo cáo/Tồn kho...)"""
@@ -26,7 +27,7 @@ def read_all_data(
     product_id: Optional[int] = Query(None, description="Lọc theo ID Sản phẩm"),
     skip: int = 0, 
     limit: int = 10, 
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_admin_audit_db),
     current_admin: models.User = Depends(auth.get_current_admin)
 ):
     """Admin xem toàn bộ dữ liệu thực tế đang có trong hệ thống"""
@@ -36,7 +37,7 @@ def read_all_data(
 def update_data(
     data_id: int, 
     data_in: ProductDataUpdate, 
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_admin_audit_db),
     current_admin: models.User = Depends(auth.get_current_admin)
 ):
     """Admin chỉnh sửa nội dung dữ liệu"""
@@ -45,7 +46,7 @@ def update_data(
 @router.delete("/{data_id}")
 def delete_data(
     data_id: int, 
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_admin_audit_db),
     current_admin: models.User = Depends(auth.get_current_admin)
 ):
     """Admin xóa một dòng dữ liệu"""

@@ -14,7 +14,7 @@ const AuditLogAdminPage = () => {
     
     // Pagination
     const [currentPage, setCurrentPage] = useState(1);
-    const limit = 20;
+    const limit = 7;
 
     // Filters
     const [filters, setFilters] = useState({
