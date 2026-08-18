@@ -5,3 +5,4 @@ from .user import UserCreate, UserResponse
 from .token import Token
 from .data_access import *
 from .promotion import *
+from .audit import *

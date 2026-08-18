@@ -1,7 +1,7 @@
 import { X } from "lucide-react";
 import { useRef } from "react";
 import { useClickOutside } from "../hook/useClickOutside";
-
+// components/Modal.jsx
 export const Modal = ({ isOpen, onClose, children, title, fitContent = false }) => {
     const formRef = useRef(null);
     useClickOutside(formRef, onClose);

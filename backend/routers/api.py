@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 import auth
 
 from routers import product,request_router,access_router,promotions
-from routers.admin import admin_product, admin_request, admin_product_data, admin_promotion
+from routers.admin import admin_product, admin_request, admin_product_data, admin_promotion, admin_audit
 from routers import auth_router
     
 
@@ -16,6 +16,7 @@ admin_router.include_router(admin_request.router, prefix="/requests")
 admin_router.include_router(admin_product.router, prefix="/products")
 admin_router.include_router(admin_product_data.router, prefix="/product-data")
 admin_router.include_router(admin_promotion.router, prefix="/promotions")
+admin_router.include_router(admin_audit.router, prefix="/audit-logs")
 
 
 # 2. USER GROUP (User only)

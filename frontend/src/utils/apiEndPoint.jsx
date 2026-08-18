@@ -35,6 +35,10 @@ export const API_ENDPOINTS = {
         DELETE: (id) => `/admin/product-data/${id}`,
     },
 
+    ADMIN_AUDIT:{
+        GET_ALL: '/admin/audit-logs/'
+    },
+
     // === USER (PUBLIC) ===
     USER: {
         GET_AVAILABLE_PRODUCTS: '/products/',

@@ -1,5 +1,5 @@
 # routers/admin/admin_request.py
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import List, Optional
 
@@ -8,6 +8,7 @@ from database import get_db
 from services import request_service
 
 router = APIRouter(
+    # prefix="/admin/requests",
     tags=["Admin Data Requests"]
 )
 
@@ -24,18 +25,20 @@ def get_all_requests(
 
 @router.put("/{request_id}/approve", response_model=schemas.DataRequestResponse)
 def approve_request(
+    bg_task: BackgroundTasks,
     request_id: int, 
     db: Session = Depends(get_db),
     current_admin: models.User = Depends(auth.get_current_admin)
 ):
     """Duyệt request và tự động sinh UserDataAccess"""
-    return request_service.process_request(db, request_id, current_admin.id, action="APPROVE")
+    return request_service.process_request(bg_task, db, request_id, current_admin.id, action="APPROVE")
 
 @router.put("/{request_id}/reject", response_model=schemas.DataRequestResponse)
 def reject_request(
+    bg_task: BackgroundTasks,
     request_id: int, 
     db: Session = Depends(get_db),
     current_admin: models.User = Depends(auth.get_current_admin)
 ):
     """Từ chối request"""
-    return request_service.process_request(db, request_id, current_admin.id, action="REJECT")
+    return request_service.process_request(bg_task ,db, request_id, current_admin.id, action="REJECT")

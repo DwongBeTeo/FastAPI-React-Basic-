@@ -15,6 +15,7 @@ import NotFound from './pages/NotFound';
 import ProductDetailPage from './pages/user/product/ProductDetailPage';
 import PromotionPage from './pages/admin/promotion/PromotionPage';
 import TestDate from './TestDate';
+import AuditLogAdminPage from './pages/admin/AuditLogAdminPage';
 
 const App = () => {
   return (
@@ -43,6 +44,7 @@ const App = () => {
             <Route path="/admin/requests" element={<RequestAdminPage />} />
             <Route path="/admin/product-data" element={<ProductDataAdmin />} />
             <Route path="/admin/promotions" element={<PromotionPage />} />
+            <Route path="/admin/audit_logs" element={<AuditLogAdminPage />} />
         </Route>
 
       </Route>

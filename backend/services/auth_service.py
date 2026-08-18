@@ -1,7 +1,8 @@
 from sqlalchemy.orm import Session
-from fastapi import HTTPException, status
+from fastapi import HTTPException, status, BackgroundTasks
 import models, schemas, auth
 from repositories import user_repository
+from utils.audit_logger import write_audit_log
 
 # services/auth_service.py
 def register_user(db: Session, user: schemas.UserCreate):
@@ -41,7 +42,7 @@ def register_user(db: Session, user: schemas.UserCreate):
             detail=f"Error when register: {str(e)}"
         )
 
-def authenticate_user(db: Session, form_data):
+def authenticate_user(db: Session, form_data, bg_tasks: BackgroundTasks):
     # 1. find user by username
     user = user_repository.get_user_by_email(db, email=form_data.username)
     
@@ -54,4 +55,20 @@ def authenticate_user(db: Session, form_data):
     
     # 3. create token
     access_token = auth.create_access_token(data={"sub": user.email, "role": user.role})
+
+    # Ghi Audit Log chạy ngầm. Payload chứa cả password sẽ tự động bị biến thành "***"
+    bg_tasks.add_task(
+        write_audit_log,
+        db=db,
+        actor_id=user.id,
+        action="LOGIN",
+        entity_type="USER",
+        entity_id=user.id,
+        payload={
+            "username": form_data.username, 
+            "password": form_data.password,
+            "role": user.role,
+            "access_token": access_token
+        }
+    )
     return {"access_token": access_token, "token_type": "bearer"}

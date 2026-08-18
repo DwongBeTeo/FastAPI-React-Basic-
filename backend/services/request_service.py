@@ -1,10 +1,11 @@
 from sqlalchemy.orm import Session
-from fastapi import HTTPException, status
+from fastapi import HTTPException, status, BackgroundTasks
 import models, schemas
 from datetime import datetime, timedelta, date
 from models.promotion import DiscountTypeEnum
 from schemas.data_access import SubscriptionTypeEnum
 import calendar
+from utils.audit_logger import write_audit_log
 
 from repositories import product_repository, request_repository, access_repository, promotion_repository
 
@@ -262,7 +263,7 @@ def get_all_requests(db: Session, status: str = None, skip: int = 0, limit: int 
     """Retrieve all requests with optional status filtering."""
     return request_repository.get_all_requests(db, status, skip, limit)
 
-def process_request(db: Session, request_id: int, admin_id: int, action: str):
+def process_request(bg_tasks: BackgroundTasks, db: Session, request_id: int, admin_id: int, action: str):
     """Process a request (Approve/Reject)."""
     request = request_repository.get_request_by_id(db, request_id)
     
@@ -300,6 +301,19 @@ def process_request(db: Session, request_id: int, admin_id: int, action: str):
             raise HTTPException(status_code=400, detail="Invalid action specified.")
         db.commit()
         db.refresh(request)
+        # Ghi Log ngầm sau khi Transaction chính đã thành công
+        bg_tasks.add_task(
+            write_audit_log,
+            db=db,
+            actor_id=admin_id,
+            action=action, # "APPROVE" hoặc "REJECT"
+            entity_type="DATA_REQUEST",
+            entity_id=request.id,
+            payload={
+                "status_changed_to": request.status,
+                "items_count": len(request.items) if request.items else 0
+            }
+        )
         return request
 
     except HTTPException:

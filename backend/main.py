@@ -1,11 +1,12 @@
 # main.py
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from middlewares.trace_middleware import TraceIDMiddleware
 
 from routers.api import api_router
 
 app = FastAPI(title="Pet Project API")
-
+app.add_middleware(TraceIDMiddleware)
 # Cấu hình CORS
 app.add_middleware(
     CORSMiddleware,

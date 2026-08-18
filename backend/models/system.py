@@ -7,12 +7,18 @@ class AuditLog(Base):
     __tablename__ = "audit_logs"
     
     id = Column(Integer, primary_key=True, index=True)
-    actor_id = Column(Integer, nullable=True)
-    action = Column(String, nullable=False)
-    entity_type = Column(String, nullable=False)
-    entity_id = Column(Integer, nullable=False)
+    trace_id = Column(String, index=True, nullable=True)
+    
+    # THÊM index=True vào các trường hay dùng để lọc
+    actor_id = Column(Integer, index=True, nullable=True) 
+    action = Column(String, index=True, nullable=False)
+    entity_type = Column(String, index=True, nullable=False)
+    entity_id = Column(Integer, index=True, nullable=False)
+    
     payload = Column(String, nullable=True)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    
+    # THÊM index=True để tối ưu việc sắp xếp (ORDER BY created_at DESC)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow, index=True)
 
 class RefreshToken(Base):
     __tablename__ = "refresh_tokens"

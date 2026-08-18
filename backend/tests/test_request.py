@@ -226,7 +226,7 @@ def test_idor_data_request_guard(client, mocker):
     # 4. Phục hồi lính gác cổng để không ảnh hưởng test khác
     app.dependency_overrides.pop(auth.get_current_user)
     
-    # 5. KỲ VỌNG: Hệ thống phải văng 403 Forbidden hoặc 404 (Tùy logic bạn đang viết ở Router)
+    # 5. KỲ VỌNG: Hệ thống phải văng 403 Forbidden hoặc 404
     # Ví dụ nếu bạn throw 403 khi user.id != request.user_id:
     assert response.status_code in [403, 404]
     

@@ -11,9 +11,7 @@ const root = createRoot(document.getElementById('root'));
 root.render(
 <BrowserRouter>
    <AuthProvider>
-      {/* <CartProvider> */}
         <App />
-      {/* </CartProvider> */}
    </AuthProvider>
 </BrowserRouter>
 );
