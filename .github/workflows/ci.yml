@@ -1,0 +1,63 @@
+name: Backend CI Tests
+
+# Kịch bản này sẽ tự động chạy mỗi khi có code mới đẩy lên nhánh 'main'
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    # 1. Tạo một Database PostgreSQL ảo trong lúc chạy Test
+    services:
+      postgres:
+        image: postgres:18.4-alpine
+        env:
+          POSTGRES_USER: YourUserName
+          POSTGRES_PASSWORD: YourPassWord
+          POSTGRES_DB: pet_DB
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    # 2. Lấy toàn bộ mã nguồn từ GitHub về máy ảo
+    - name: Checkout mã nguồn
+      uses: actions/checkout@v4
+
+    # 3. Cài đặt Python chuẩn theo version dự án của bạn
+    - name: Cài đặt Python 3.13.2
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.13.2'
+
+    # 4. Cài đặt công cụ quản lý thư viện Poetry
+    - name: Cài đặt Poetry
+      run: |
+        curl -sSL https://install.python-poetry.org | python3 -
+        echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+    # 5. Cài đặt các thư viện cần thiết cho Backend (vào thư mục backend)
+    - name: Cài đặt các Dependencies
+      working-directory: ./backend
+      run: poetry install --no-root
+
+    # 6. Chạy toàn bộ Test case với Pytest
+    - name: Chạy Pytest
+      working-directory: ./backend
+      env:
+        # Khai báo các biến môi trường để code test có thể kết nối với DB ảo
+        DATABASE_URL: postgresql://YourUserName:YourPassWord@localhost:5432/pet_DB
+        SECRET_KEY: My_Secret_Key
+        ALGORITHM: HS256
+        ACCESS_TOKEN_EXPIRE_MINUTES: 1440
+        REFRESH_TOKEN_EXPIRE_DAYS: 7
+      # Dùng poetry run để chạy lệnh trong môi trường ảo của dự án
+      run: poetry run pytest tests/ -v

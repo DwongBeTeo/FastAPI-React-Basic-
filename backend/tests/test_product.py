@@ -76,19 +76,37 @@ def test_create_product_auto_increment(client, mocker):
 def test_get_all_products(client, mocker):
     """Test lấy danh sách sản phẩm"""
     
-    # Add is_active= true
+    # 1. Tạo list giả lập
     mock_list = [
         models.Product(id=1, code="PRD-001", name="SP 1", price=100, is_active=True),
         models.Product(id=2, code="PRD-002", name="SP 2", price=200, is_active=True)
     ]
-    mocker.patch("repositories.product_repository.get_products", return_value=mock_list)
+    
+    # 2. SỬA Ở ĐÂY: Mock trả về đúng cấu trúc dictionary (có total và data)
+    mock_response = {
+        "total": 2,
+        "data": mock_list
+    }
+    mocker.patch("repositories.product_repository.get_products", return_value=mock_response)
 
+    # 3. Gọi API
     response = client.get("/admin/products/?skip=0&limit=10")
     
+    # In ra để debug nếu có lỗi
+    if response.status_code != 200:
+        print("LỖI TỪ SERVER:", response.json())
+        
+    # 4. Kiểm tra kết quả
     assert response.status_code == status.HTTP_200_OK
-    data = response.json()
-    assert len(data) == 2
-    assert data[0]["code"] == "PRD-001"
+    
+    json_data = response.json()
+    
+    # SỬA Ở ĐÂY: Assert theo cấu trúc của PaginatedProductResponse
+    assert "total" in json_data
+    assert "data" in json_data
+    assert json_data["total"] == 2
+    assert len(json_data["data"]) == 2
+    assert json_data["data"][0]["code"] == "PRD-001"
 
 def test_update_product_success(client, mocker):
     """Test update thành công và chặn update 'code'"""

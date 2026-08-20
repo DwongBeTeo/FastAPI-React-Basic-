@@ -8,7 +8,7 @@ from database import get_db
 import models
 import auth
 from schemas.data_access import SubscriptionTypeEnum
-
+from models.promotion import DiscountTypeEnum
 class DummyDiscountType:
     PERCENTAGE = "PERCENTAGE"
     FIXED = "FIXED"
@@ -67,7 +67,7 @@ def test_create_historical_request_success(client, mocker):
     mocker.patch("repositories.product_repository.get_product_by_id", return_value=mock_product)
     
     # 2. Mock DB: Không có yêu cầu nào trùng lặp, không có promo
-    mocker.patch("services.request_service._validate_and_get_promotion", return_value=(None, None, 0.0))
+    mocker.patch("services.request_service._validate_and_get_promotion", return_value=(None, None, 0.0,0))
     mocker.patch("repositories.request_repository.get_pending_request_item", return_value=None)
     mocker.patch("repositories.request_repository.get_overlapping_approved_item", return_value=None)
     mocker.patch("repositories.request_repository.get_last_request_by_prefix", return_value=None)
@@ -110,14 +110,24 @@ def test_create_ongoing_request_with_promotion(client, mocker):
         available_from=date(2020, 1, 1), available_to=None
     )
     mocker.patch("repositories.product_repository.get_product_by_id", return_value=mock_product)
+    
+    # SỬA LỖI 2 TẠI ĐÂY: Dùng đúng DiscountTypeEnum thay vì DummyDiscountType
     mocker.patch(
         "services.request_service._validate_and_get_promotion", 
-        return_value=(5, DummyDiscountType.PERCENTAGE, 10.0)
+        return_value=(5, DiscountTypeEnum.PERCENTAGE, 10.0, 0)
     )
+    
     mocker.patch("repositories.request_repository.get_pending_request_item", return_value=None)
     mocker.patch("repositories.request_repository.get_overlapping_approved_item", return_value=None)
     mocker.patch("repositories.request_repository.get_last_request_by_prefix", return_value=None)
     mocker.patch("repositories.request_repository.create_request_with_items", side_effect=mock_db_save)
+
+    # Thêm mock để tránh bị lỗi khi query lấy object promotion ra để trừ số lượng
+    mocker.patch("repositories.promotion_repository.get_promotion_by_id", return_value=None)
+
+    # Giả lập các thao tác của DB Session để tránh lỗi SQLAlchemy
+    mocker.patch("sqlalchemy.orm.Session.commit", return_value=None)
+    mocker.patch("sqlalchemy.orm.Session.refresh", return_value=None)
 
     response = client.post(
         "/requests/",
@@ -135,6 +145,10 @@ def test_create_ongoing_request_with_promotion(client, mocker):
         }
     )
     
+    # In ra lỗi từ server
+    if response.status_code != 200:
+        print("LỖI TỪ SERVER:", response.json())
+        
     assert response.status_code == 200
     data = response.json()
     
@@ -144,7 +158,6 @@ def test_create_ongoing_request_with_promotion(client, mocker):
     assert data["items"][0]["calculated_months"] == 1
     assert data["items"][0]["applied_price"] == 450000
 
-
 def test_create_historical_missing_to_date(client, mocker):
     """Test 3: Cố tình mua HISTORICAL nhưng quên không truyền to_date -> Lỗi 400"""
     
@@ -152,7 +165,7 @@ def test_create_historical_missing_to_date(client, mocker):
     
     mock_product = models.Product(id=1, name="Data Stock A", price=100000, available_from=date(2020, 1, 1))
     mocker.patch("repositories.product_repository.get_product_by_id", return_value=mock_product)
-    mocker.patch("services.request_service._validate_and_get_promotion", return_value=(None, None, 0.0))
+    mocker.patch("services.request_service._validate_and_get_promotion", return_value=(None, None, 0.0, 0))
 
     response = client.post(
         "/requests/",
@@ -180,7 +193,7 @@ def test_create_request_duplicate_pending(client, mocker):
     
     mock_product = models.Product(id=1, name="Data Stock A", price=100000)
     mocker.patch("repositories.product_repository.get_product_by_id", return_value=mock_product)
-    mocker.patch("services.request_service._validate_and_get_promotion", return_value=(None, None, 0.0))
+    mocker.patch("services.request_service._validate_and_get_promotion", return_value=(None, None, 0.0, 0))
     
     # Giả lập Database báo rằng: "Ông này đang có 1 đơn PENDING món này rồi" (trả về True/Object)
     mocker.patch("repositories.request_repository.get_pending_request_item", return_value=models.DataRequestItem(id=99))

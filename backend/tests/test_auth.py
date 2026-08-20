@@ -21,10 +21,9 @@ app.dependency_overrides[get_db] = override_get_db
 def test_register_user_success(client, mocker):
     """Test luồng đăng ký thành công bằng cách mock kết quả trả về của Repository"""
     
-    # 1. Giả lập Repo: Khi check email trùng, trả về None (Nghĩa là email chưa ai dùng)
+    # 1. Giả lập Repo
     mocker.patch("repositories.user_repository.get_user_by_email", return_value=None)
     
-    # 2. Giả lập Repo: Khi tạo user thành công, trả về một Object User giả có ID=1
     mock_user = models.User(
         id=1, 
         username="new_tester", 
@@ -33,8 +32,12 @@ def test_register_user_success(client, mocker):
         is_active=True
     )
     mocker.patch("repositories.user_repository.create_user", return_value=mock_user)
+    mocker.patch("services.auth_service.auth.get_password_hash", return_value="fake_hashed_password")
+    # 2. Giả lập các thao tác của DB Session để tránh lỗi SQLAlchemy
+    mocker.patch("sqlalchemy.orm.Session.commit", return_value=None)
+    mocker.patch("sqlalchemy.orm.Session.refresh", return_value=None)
 
-    # 3. Gọi API (Sẽ tự động thành /api/v1/auth/register nhờ conftest.py)
+    # 3. Gọi API
     response = client.post(
         "/auth/register",
         json={
@@ -44,6 +47,10 @@ def test_register_user_success(client, mocker):
         }
     )
     
+    # Debug: In ra lỗi chi tiết nếu test vẫn trượt
+    if response.status_code != 200:
+        print("LỖI TỪ SERVER:", response.json())
+
     # 4. Kiểm tra kết quả
     assert response.status_code == 200
     data = response.json()
