@@ -1,4 +1,6 @@
 import jwt
+import secrets
+import hashlib
 from datetime import datetime, timedelta
 from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
@@ -9,7 +11,6 @@ import models
 from database import get_db
 
 # auth.py
-# Import settings từ file config.py
 from config import settings 
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -30,6 +31,15 @@ def create_access_token(data: dict):
     
     # Lấy SECRET_KEY và ALGORITHM từ settings
     return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+
+# REFRESH TOKEN
+def create_refresh_token() -> str:
+    """Tạo một chuỗi ngẫu nhiên 64 ký tự an toàn cho Refresh Token"""
+    return secrets.token_urlsafe(64)
+
+def get_token_hash(token: str) -> str:
+    """Băm token bằng SHA-256 trước khi lưu vào Database để bảo mật"""
+    return hashlib.sha256(token.encode()).hexdigest()
 
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     credentials_exception = HTTPException(

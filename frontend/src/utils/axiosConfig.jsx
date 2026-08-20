@@ -10,13 +10,27 @@ const axiosConfig = axios.create({
     },
 });
 
-// List of endpoints that do not require the Authorization header
-const excludeEndpoints = ['/auth/login', '/auth/register'];
+// Thêm '/auth/refresh' vào danh sách không tự động gắn token cũ
+const excludeEndpoints = ['/auth/login', '/auth/register', '/auth/refresh'];
+
+// === CÁC BIẾN QUẢN LÝ REFRESH TOKEN ===
+let isRefreshing = false;
+let refreshSubscribers = [];
+
+// Đưa các request bị lỗi 401 vào hàng đợi
+const subscribeTokenRefresh = (cb) => {
+    refreshSubscribers.push(cb);
+};
+
+// Chạy lại tất cả request trong hàng đợi sau khi có token mới
+const onRefreshed = (token) => {
+    refreshSubscribers.forEach((cb) => cb(token));
+    refreshSubscribers = [];
+};
 
 // === REQUEST INTERCEPTOR ===
 axiosConfig.interceptors.request.use(
     (config) => {
-        // Check if the current endpoint is in the list of endpoints that don't require authorization
         const shouldSkipToken = excludeEndpoints.some((endpoint) => 
             config.url?.includes(endpoint)
         );
@@ -29,24 +43,68 @@ axiosConfig.interceptors.request.use(
         }
         return config;
     },
-    (error) => {
-        return Promise.reject(error);
-    }
+    (error) => Promise.reject(error)
 );
 
 // === RESPONSE INTERCEPTOR ===
 axiosConfig.interceptors.response.use(
     (response) => {
-        // return the response data directly for successful responses
+        // Trả về data trực tiếp cho gọn
         return response.data; 
     },
-    (error) => {
+    async (error) => {
+        const originalRequest = error.config;
+
         if (error.response) {
-            // handle specific status codes
-            if (error.response.status === 401) {
-                console.warn('Token hết hạn hoặc không hợp lệ. Vui lòng đăng nhập lại.');
-                localStorage.removeItem('token');
-                window.location.href = '/login';
+            // Nếu lỗi 401 (Hết hạn token) và không phải là API login hay refresh
+            if (error.response.status === 401 && !originalRequest.url.includes('/auth/login') && !originalRequest.url.includes('/auth/refresh')) {
+                
+                // Cờ _retry để tránh bị lặp vô tận (chỉ thử lại 1 lần)
+                if (!originalRequest._retry) {
+                    originalRequest._retry = true;
+
+                    if (!isRefreshing) {
+                        isRefreshing = true;
+                        const refreshToken = localStorage.getItem('refresh_token');
+
+                        if (refreshToken) {
+                            try {
+                                // Gọi API /refresh. Lưu ý: Phải dùng axios mặc định (không dùng axiosConfig) 
+                                // để không bị chạy qua interceptor này thêm lần nữa.
+                                const { data } = await axios.post(`${BASE_URL}/auth/refresh`, {
+                                    refresh_token: refreshToken
+                                });
+
+                                // Lưu cặp token mới vào storage
+                                localStorage.setItem('token', data.access_token);
+                                localStorage.setItem('refresh_token', data.refresh_token);
+
+                                // Kích hoạt chạy lại các API đang nằm chờ với token mới
+                                onRefreshed(data.access_token);
+                            } catch (refreshError) {
+                                // Refresh Token cũng hết hạn -> Ép văng ra màn Login
+                                console.warn('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
+                                localStorage.removeItem('token');
+                                localStorage.removeItem('refresh_token');
+                                window.location.href = '/login'; 
+                            } finally {
+                                isRefreshing = false; // Mở khóa lại
+                            }
+                        } else {
+                            // Không có refresh token dưới máy -> Đăng xuất luôn
+                            localStorage.removeItem('token');
+                            window.location.href = '/login';
+                        }
+                    }
+
+                    // Request hiện tại sẽ bị treo (Promise chưa resolve) chờ lấy token mới xong
+                    return new Promise((resolve) => {
+                        subscribeTokenRefresh((token) => {
+                            originalRequest.headers['Authorization'] = `Bearer ${token}`;
+                            resolve(axiosConfig(originalRequest)); // Chạy lại API ban đầu
+                        });
+                    });
+                }
             } 
             else if (error.response.status === 403) {
                 console.warn('Bạn không có quyền truy cập chức năng này!');

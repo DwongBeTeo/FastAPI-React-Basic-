@@ -15,24 +15,17 @@ export const AuthProvider = ({ children }) => {
         const token = localStorage.getItem('token');
         if (token) {
             try {
+                // Chỉ cần decode ra để lấy email/role hiển thị lên giao diện
+                // Việc token hết hạn sẽ được Axios Interceptor tự lo
                 const decoded = jwtDecode(token);
-                const currentTime = Date.now() / 1000;
-                
-                // Kiểm tra hạn sử dụng của Token
-                if (decoded.exp < currentTime) {
-                    console.warn("Token hết hạn. Đang đăng xuất...");
-                    localStorage.removeItem('token');
-                    setUser(null);
-                } else {
-                    // Set lại user từ cục payload đã được mã hóa ở auth_service.py
-                    setUser({
-                        email: decoded.sub,
-                        role: decoded.role
-                    });
-                }
+                setUser({
+                    email: decoded.sub,
+                    role: decoded.role
+                });
             } catch (error) {
                 console.error("Token không hợp lệ:", error);
                 localStorage.removeItem('token');
+                localStorage.removeItem('refresh_token');
                 setUser(null);
             }
         }
@@ -40,9 +33,12 @@ export const AuthProvider = ({ children }) => {
     }, []);
 
     // Hàm gọi khi nhấn Login thành công
-    const login = (token) => {
-        localStorage.setItem('token', token);
-        const decoded = jwtDecode(token);
+    const login = (responseData) => {
+        // responseData là toàn bộ JSON backend trả về: { access_token, refresh_token, token_type }
+        localStorage.setItem('token', responseData.access_token);
+        localStorage.setItem('refresh_token', responseData.refresh_token); 
+
+        const decoded = jwtDecode(responseData.access_token);
         setUser({
             email: decoded.sub,
             role: decoded.role
@@ -50,26 +46,43 @@ export const AuthProvider = ({ children }) => {
     };
 
     // Hàm gọi khi nhấn Logout
-    const logout = () => {
-        localStorage.removeItem('token');
-        navigate('/', {replace : true});
-        setTimeout(() => {
-            setUser(null);
-            setLoading(false);
-        }, 10);
+    const logout = async () => {
+        try {
+            const refreshToken = localStorage.getItem('refresh_token');
+            if (refreshToken) {
+                // Gọi API để Backend thu hồi Token này trong Database
+                await axiosConfig.post('/auth/logout', { 
+                    refresh_token: refreshToken 
+                });
+            }
+        } catch (error) {
+            console.error("Lỗi khi logout server:", error);
+        } finally {
+            // Bắt buộc phải xóa token dưới Frontend dù gọi API có bị lỗi mạng hay không
+            localStorage.removeItem('token');
+            localStorage.removeItem('refresh_token');
+            navigate('/', { replace: true });
+            
+            setTimeout(() => {
+                setUser(null);
+                setLoading(false);
+            }, 10);
+        }
     };
 
-    const contextValue={
+    const contextValue = {
         user,
         setUser,
         login,
         logout,
         loading
-    }
+    };
+
     return (
         <AuthContext.Provider value={contextValue}>
             {children}
         </AuthContext.Provider>
-    )
+    );
 };
+
 export default AuthContext;
