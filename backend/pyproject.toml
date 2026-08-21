@@ -18,7 +18,10 @@ dependencies = [
     "passlib (>=1.7.4,<2.0.0)",
     "bcrypt (>=5.0.0,<6.0.0)",
     "python-dotenv (>=1.2.3,<2.0.0)",
-    "python-multipart (>=0.0.32,<0.0.33)"
+    "python-multipart (>=0.0.32,<0.0.33)",
+    "postgresql-audit (>=0.18.0,<0.19.0)",
+    "sqlalchemy-utils (>=0.42.1,<0.43.0)",
+    "email-validator (>=2.3.0,<3.0.0)"
 ]
 
 
