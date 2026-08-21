@@ -15,16 +15,25 @@ class DummyDiscountType:
 
 # CẤU HÌNH DEPENDENCIES MOCKING
 
-def override_get_db():
-    db = MagicMock()
-    yield db
+@pytest.fixture(autouse=True)
+def setup_dependency_overrides():
+    """Fixture này tự động chạy TRƯỚC mỗi test để mock DB và User, 
+    sau đó tự động dọn dẹp SAU MỖI test"""
+    
+    def override_get_db():
+        db = MagicMock()
+        yield db
 
-def override_get_current_user():
-    """Mock Lính gác cổng: Báo cáo đây là USER bình thường đang đăng nhập"""
-    return models.User(id=2, username="normal_user", role="USER", is_active=True)
+    def override_get_current_user():
+        return models.User(id=2, username="normal_user", role="USER", is_active=True)
 
-app.dependency_overrides[get_db] = override_get_db
-app.dependency_overrides[auth.get_current_user] = override_get_current_user
+    app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[auth.get_current_user] = override_get_current_user
+    
+    yield # Cho phép test chạy
+    
+    # Dọn dẹp: Reset lại toàn bộ overrides sau khi test chạy xong
+    app.dependency_overrides = {}
 
 # HÀM HỖ TRỢ TÍNH NGÀY THÁNG ĐỂ TEST KHÔNG BAO GIỜ BỊ OUTDATE
 today = date.today()
@@ -221,52 +230,34 @@ def test_create_request_duplicate_pending(client, mocker):
 def test_idor_data_request_guard(client, mocker):
     """Test A: Chống IDOR - User A không được xem Data Request của User B"""
     
-    # 1. Giả lập User A (id=1) đang đăng nhập
-    def override_get_current_user():
-        return models.User(id=1, username="user_A", role="USER", is_active=True)
+    # 1. Ghi đè lại User thành id=1 (Chỉ có tác dụng trong test này)
+    app.dependency_overrides[auth.get_current_user] = lambda: models.User(id=1, username="user_A", role="USER", is_active=True)
     
-    app.dependency_overrides[auth.get_current_user] = override_get_current_user
-    
-    # 2. Giả lập DB trả về Request id=99, NHƯNG thuộc về User B (user_id=2)
     mock_request_of_user_b = models.DataRequest(
         id=99, user_id=2, reference_code="REQ-B-001", status="PENDING"
     )
     mocker.patch("repositories.request_repository.get_request_by_id", return_value=mock_request_of_user_b)
     
-    # 3. User A cố tình gọi API lấy chi tiết phiếu số 99
     response = client.get("/requests/99")
     
-    # 4. Phục hồi lính gác cổng để không ảnh hưởng test khác
-    app.dependency_overrides.pop(auth.get_current_user)
+    # XÓA dòng app.dependency_overrides.pop(...) ở đây
     
-    # 5. KỲ VỌNG: Hệ thống phải văng 403 Forbidden hoặc 404
-    # Ví dụ nếu bạn throw 403 khi user.id != request.user_id:
     assert response.status_code in [403, 404]
-    
     if response.status_code == 403:
         assert "permission" in response.json()["detail"].lower()
-
 
 
 def test_access_guard_product_data_forbidden(client, mocker):
     """Test B: Chặn User xem dữ liệu của Sản phẩm khi CHƯA MUA (hoặc hết hạn)"""
     
-    # 1. Giả lập User A đang đăng nhập
-    def override_get_current_user():
-        return models.User(id=1, username="user_A", role="USER", is_active=True)
+    # 1. Ghi đè lại User thành id=1
+    app.dependency_overrides[auth.get_current_user] = lambda: models.User(id=1, username="user_A", role="USER", is_active=True)
     
-    app.dependency_overrides[auth.get_current_user] = override_get_current_user
-    
-    # 2. Giả lập Step 1 (Gatekeeper): Repository kiểm tra bảng UserDataAccess trả về None 
-    # (Nghĩa là không có quyền hợp lệ nào cho product_id = 5)
     mocker.patch("repositories.access_repository.get_valid_access_by_user_and_product", return_value=None)
     
-    # 3. Gọi API (Giả sử đường dẫn API của bạn là /access/products/5/data hoặc /products/5/data)
     response = client.get("/access/5/data") 
     
-    # 4. Phục hồi override
-    app.dependency_overrides.pop(auth.get_current_user)
+    # XÓA dòng app.dependency_overrides.pop(...) ở đây
     
-    # 5. KỲ VỌNG: HTTP 403 Forbidden và đúng câu thông báo từ Code của bạn
     assert response.status_code == status.HTTP_403_FORBIDDEN
     assert response.json()["detail"] == "You do not have permission to access this product or your access has expired."
